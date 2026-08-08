@@ -1,0 +1,17 @@
+# Entorno
+.env
+.env.local
+.env.*.local
+
+# Dependencias
+node_modules/
+dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDEs
+.idea/
+.vscode/
+*.suo
