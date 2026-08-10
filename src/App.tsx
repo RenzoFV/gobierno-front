@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
-import NavBar from "./components/NavBar";
+import AppShell from "./components/AppShell";
 import LoginPage from "./pages/LoginPage";
 import InventarioPage from "./pages/InventarioPage";
 import GrafoPage from "./pages/GrafoPage";
@@ -12,12 +12,7 @@ import DashboardPage from "./pages/DashboardPage";
 function Layout() {
   const { token } = useAuth();
   if (!token) return <Navigate to="/login" replace />;
-  return (
-    <>
-      <NavBar />
-      <Outlet />
-    </>
-  );
+  return <Outlet />;
 }
 
 function App() {
@@ -27,6 +22,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route element={<Layout />}>
+            <Route element={<AppShell />}>
             <Route path="/inventario" element={
               <ProtectedRoute><InventarioPage /></ProtectedRoute>
             } />
@@ -42,8 +38,9 @@ function App() {
             <Route path="/dashboard" element={
               <ProtectedRoute><DashboardPage /></ProtectedRoute>
             } />
+            </Route>
           </Route>
-          <Route path="/" element={<Navigate to="/inventario" replace />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
