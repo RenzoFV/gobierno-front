@@ -2,6 +2,7 @@ import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Bot, Cpu, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { getActivos, getProcesos } from "../api/activos";
 import { analizarIA, analizarRegla, getCambio, getComparacion } from "../api/cambios";
 import ComparacionMetodos from "../components/ComparacionMetodos";
 import LoadingState from "../components/LoadingState";
@@ -26,6 +27,8 @@ export default function CambioDetallePage() {
     queryFn: () => getComparacion(id!),
     enabled: !!id,
   });
+  const { data: activos = [] } = useQuery({ queryKey: ["activos"], queryFn: getActivos });
+  const { data: procesos = [] } = useQuery({ queryKey: ["procesos"], queryFn: getProcesos });
 
   const invalida = () => {
     queryClient.invalidateQueries({ queryKey: ["cambio", id] });
@@ -114,6 +117,8 @@ export default function CambioDetallePage() {
             regla={comparacion?.regla ?? null}
             ia={comparacion?.ia ?? null}
             coincidencia={comparacion?.coincidencia_activos}
+            activos={activos}
+            procesos={procesos}
           />
         </CardContent>
       </Card>
