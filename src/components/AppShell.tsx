@@ -98,7 +98,7 @@ export default function AppShell() {
     <div className="min-h-screen bg-slate-100 text-slate-900">
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 hidden border-r border-slate-800 bg-slate-950 text-white transition-all duration-200 lg:flex lg:flex-col",
+          "fixed inset-y-0 left-0 z-40 hidden border-r border-slate-200 bg-white text-slate-900 shadow-sm transition-all duration-200 lg:flex lg:flex-col",
           collapsed ? "w-28" : "w-72",
         )}
       >
@@ -113,8 +113,8 @@ export default function AppShell() {
       {mobileOpen && (
         <div className="fixed inset-0 z-50 animate-fade lg:hidden">
           <button className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm" aria-label="Cerrar menu" onClick={() => setMobileOpen(false)} />
-          <aside className="relative flex h-full w-72 animate-slide-left flex-col bg-slate-950 text-white shadow-2xl">
-            <Button variant="ghost" size="icon" className="absolute right-3 top-3 text-white hover:bg-white/10" onClick={() => setMobileOpen(false)}>
+          <aside className="relative flex h-full w-72 animate-slide-left flex-col bg-white text-slate-900 shadow-2xl">
+            <Button variant="ghost" size="icon" className="absolute right-3 top-3 text-slate-500 hover:bg-slate-100 hover:text-slate-950" onClick={() => setMobileOpen(false)}>
               <X className="h-5 w-5" />
             </Button>
             <SidebarContent collapsed={false} usuario={usuario} onLogout={() => setConfirmLogout(true)} />
@@ -187,14 +187,14 @@ function SidebarContent({
 }) {
   return (
     <>
-      <div className={cn("flex h-20 items-center gap-3", collapsed ? "px-3" : "px-5")}>
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white text-slate-950 shadow-sm">
+      <div className={cn("flex h-20 items-center gap-3 border-b border-slate-100", collapsed ? "px-3" : "px-5")}>
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-sky-100 text-sky-700 shadow-sm shadow-sky-100">
           <Bot className="h-5 w-5" />
         </div>
         {!collapsed && (
           <div className="min-w-0">
-            <p className="truncate text-sm font-bold">Change Impact</p>
-            <p className="truncate text-xs text-slate-400">Analyzer</p>
+            <p className="truncate text-sm font-bold text-slate-950">Change Impact</p>
+            <p className="truncate text-xs text-slate-500">Analyzer</p>
           </div>
         )}
         {onToggle && (
@@ -203,7 +203,7 @@ function SidebarContent({
               variant="ghost"
               size="icon"
               className={cn(
-                "ml-auto hidden text-slate-300 hover:bg-white/10 hover:text-white lg:inline-flex",
+                "ml-auto hidden text-slate-400 hover:bg-slate-100 hover:text-slate-950 lg:inline-flex",
                 collapsed && "h-9 w-9 shrink-0",
               )}
               onClick={onToggle}
@@ -215,10 +215,10 @@ function SidebarContent({
         )}
       </div>
 
-      <nav className="flex-1 space-y-6 px-3">
+      <nav className="flex-1 space-y-6 px-3 py-5">
         {navigation.map((group) => (
           <div key={group.label}>
-            {!collapsed && <p className="mb-2 px-3 text-xs font-semibold uppercase text-slate-500">{group.label}</p>}
+            {!collapsed && <p className="mb-2 px-3 text-xs font-semibold uppercase text-slate-400">{group.label}</p>}
             <div className="space-y-1">
               {group.items.map((item) => (
                 <NavLink
@@ -226,9 +226,9 @@ function SidebarContent({
                   to={item.to}
                   className={({ isActive }) =>
                     cn(
-                      "flex h-11 items-center gap-3 rounded-md px-3 text-sm font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white",
+                      "flex h-11 items-center gap-3 rounded-md border border-transparent px-3 text-sm font-semibold text-slate-600 transition hover:border-slate-200 hover:bg-slate-50 hover:text-slate-950",
                       collapsed && "justify-center px-0",
-                      isActive && "bg-white text-slate-950 shadow-sm hover:bg-white hover:text-slate-950",
+                      isActive && "border-sky-100 bg-sky-50 text-sky-700 shadow-sm shadow-sky-100 hover:border-sky-100 hover:bg-sky-50 hover:text-sky-700",
                     )
                   }
                   title={collapsed ? item.label : undefined}
@@ -242,19 +242,19 @@ function SidebarContent({
         ))}
       </nav>
 
-      <div className="space-y-3 border-t border-slate-800 p-3">
+      <div className="space-y-3 border-t border-slate-100 p-3">
         {!collapsed && (
-          <div className="rounded-lg bg-white/5 p-3">
-            <p className="truncate text-sm font-semibold">{usuario?.nombre ?? "Usuario"}</p>
-            <p className="truncate text-xs text-slate-400">{usuario?.email ?? "Sin correo"}</p>
-            <p className="mt-2 inline-flex rounded-full bg-sky-400/15 px-2 py-1 text-xs font-semibold capitalize text-sky-200">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <p className="truncate text-sm font-semibold text-slate-950">{usuario?.nombre ?? "Usuario"}</p>
+            <p className="truncate text-xs text-slate-500">{usuario?.email ?? "Sin correo"}</p>
+            <p className="mt-2 inline-flex rounded-full bg-sky-100 px-2 py-1 text-xs font-semibold capitalize text-sky-700">
               {usuario?.rol ?? "rol"}
             </p>
           </div>
         )}
         <Button
           variant="destructive"
-          className={cn("w-full", collapsed && "px-0")}
+          className={cn("w-full border border-red-100 bg-red-50 text-red-700 shadow-none hover:bg-red-100", collapsed && "px-0")}
           onClick={onLogout}
           aria-label="Salir"
           title={collapsed ? "Salir" : undefined}
