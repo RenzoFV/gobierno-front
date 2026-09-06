@@ -11,6 +11,7 @@ import RiesgoBadge from "../components/RiesgoBadge";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import TablePagination from "../components/TablePagination";
 import {
   Dialog,
@@ -30,7 +31,7 @@ export default function CambiosPage() {
   const queryClient = useQueryClient();
   const { usuario } = useAuth();
   const esSolicitante = usuario?.rol === "solicitante";
-  const { data: cambios, isLoading } = useQuery({ queryKey: ["cambios"], queryFn: getCambios });
+  const { data: cambios, isLoading } = useQuery({ queryKey: ["cambios"], queryFn: () => getCambios() });
   const { data: activos } = useQuery({ queryKey: ["activos"], queryFn: getActivos });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -93,7 +94,7 @@ export default function CambiosPage() {
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="grid flex-1 gap-3 md:grid-cols-[minmax(220px,1fr)_220px] lg:grid-cols-[minmax(260px,1fr)_220px_240px]">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input className="pl-9" placeholder="Buscar por titulo, descripcion o activo..." value={search} onChange={(event) => setSearch(event.target.value)} />
           </div>
           <Select value={estado} onChange={(event) => setEstado(event.target.value)}>
@@ -154,57 +155,57 @@ export default function CambiosPage() {
 
       <Card>
         <div className="overflow-x-auto">
-          <table className="table-base">
-            <thead className="table-head">
-              <tr>
-                <th className="table-cell">Titulo</th>
-                <th className="table-cell">Activo objetivo</th>
-                {!esSolicitante && <th className="table-cell">Solicitante</th>}
-                <th className="table-cell">Fecha</th>
-                <th className="table-cell">Estado</th>
-                <th className="table-cell text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
+          <Table className="min-w-[760px]">
+            <TableHeader className="bg-muted">
+              <TableRow>
+                <TableHead>Titulo</TableHead>
+                <TableHead>Activo objetivo</TableHead>
+                {!esSolicitante && <TableHead>Solicitante</TableHead>}
+                <TableHead>Fecha</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {isLoading && (
-                <tr>
-                  <td colSpan={colSpan} className="px-4 py-8 text-center text-slate-400">Cargando solicitudes...</td>
-                </tr>
+                <TableRow>
+                  <TableCell colSpan={colSpan} className="py-8 text-center text-muted-foreground">Cargando solicitudes...</TableCell>
+                </TableRow>
               )}
               {paginados.map((cambio) => (
-                <tr key={cambio.id} className="animate-fade">
-                  <td className="table-cell">
-                    <p className="font-semibold text-slate-800">{cambio.titulo}</p>
-                    <p className="mt-1 line-clamp-1 max-w-lg text-xs text-slate-500">{cambio.descripcion}</p>
-                  </td>
-                  <td className="table-cell"><Badge variant="sky">{cambio.activo_nombre || cambio.activo_objetivo_id}</Badge></td>
+                <TableRow key={cambio.id} className="animate-fade">
+                  <TableCell>
+                    <p className="font-semibold text-foreground">{cambio.titulo}</p>
+                    <p className="mt-1 line-clamp-1 max-w-lg text-xs text-muted-foreground">{cambio.descripcion}</p>
+                  </TableCell>
+                  <TableCell><Badge variant="sky">{cambio.activo_nombre || cambio.activo_objetivo_id}</Badge></TableCell>
                   {!esSolicitante && (
-                    <td className="table-cell">
-                      <p className="font-medium text-slate-700">{cambio.creado_por_nombre || cambio.creado_por}</p>
-                      {cambio.creado_por_email && <p className="mt-1 text-xs text-slate-500">{cambio.creado_por_email}</p>}
-                    </td>
+                    <TableCell>
+                      <p className="font-medium text-foreground">{cambio.creado_por_nombre || cambio.creado_por}</p>
+                      {cambio.creado_por_email && <p className="mt-1 text-xs text-muted-foreground">{cambio.creado_por_email}</p>}
+                    </TableCell>
                   )}
-                  <td className="table-cell text-slate-500">{formatDate(cambio.fecha_creacion)}</td>
-                  <td className="table-cell"><RiesgoBadge nivel={cambio.estado} /></td>
-                  <td className="table-cell text-right">
+                  <TableCell className="text-muted-foreground">{formatDate(cambio.fecha_creacion)}</TableCell>
+                  <TableCell><RiesgoBadge nivel={cambio.estado} /></TableCell>
+                  <TableCell className="text-right">
                     <Button asChild variant="outline" size="sm">
                       <Link to={`/cambios/${cambio.id}`}>
                         <Eye className="h-4 w-4" />
                         Detalle
                       </Link>
                     </Button>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
               {!isLoading && filtrados.length === 0 && (
-                <tr>
-                  <td colSpan={colSpan} className="px-4 py-10 text-center text-sm text-slate-500">
+                <TableRow>
+                  <TableCell colSpan={colSpan} className="py-10 text-center text-sm text-muted-foreground">
                     No se encontraron solicitudes con los filtros actuales.
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
         {!isLoading && filtrados.length > 0 && (
           <TablePagination

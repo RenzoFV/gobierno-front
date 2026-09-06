@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { getActivos, getProcesos } from "../api/activos";
 import { analizarIA, analizarRegla, getCambio, getComparacion } from "../api/cambios";
 import ComparacionMetodos from "../components/ComparacionMetodos";
+import FloatingAssistant from "../components/FloatingAssistant";
 import LoadingState from "../components/LoadingState";
 import RiesgoBadge from "../components/RiesgoBadge";
 import { Badge } from "../components/ui/badge";
@@ -32,6 +33,19 @@ export default function CambioDetallePage() {
   });
   const { data: activos = [] } = useQuery({ queryKey: ["activos"], queryFn: getActivos, enabled: puedeAnalizar });
   const { data: procesos = [] } = useQuery({ queryKey: ["procesos"], queryFn: getProcesos, enabled: puedeAnalizar });
+  const chatContexto = comparacion?.ia
+    ? [
+        "Contexto de una solicitud de cambio TI ya analizada. Responde las preguntas usando este contexto y, si necesitas datos adicionales, consulta las herramientas del grafo.",
+        `Solicitud: ${cambio?.titulo ?? "Sin titulo"}`,
+        `Descripcion: ${cambio?.descripcion || "Sin descripcion"}`,
+        `Activo objetivo: ${cambio?.activo_nombre || cambio?.activo_objetivo_id}`,
+        `ID activo objetivo: ${cambio?.activo_objetivo_id}`,
+        comparacion.regla
+          ? `Resultado motor de reglas: riesgo ${comparacion.regla.nivel_riesgo}, score ${comparacion.regla.score_riesgo}, activos afectados ${comparacion.regla.activos_afectados?.join(", ") || "ninguno"}, procesos afectados ${comparacion.regla.procesos_afectados?.join(", ") || "ninguno"}, recomendaciones ${comparacion.regla.recomendaciones?.join("; ") || "ninguna"}.`
+          : "Resultado motor de reglas: no disponible.",
+        `Respuesta IA ya generada: ${comparacion.ia.respuesta_texto || "Sin respuesta textual."}`,
+      ].join("\n")
+    : undefined;
 
   const invalida = () => {
     queryClient.invalidateQueries({ queryKey: ["cambio", id] });
@@ -89,9 +103,9 @@ export default function CambioDetallePage() {
               <RiesgoBadge nivel={cambio?.estado} />
               <Badge variant="sky">{cambio?.activo_nombre || cambio?.activo_objetivo_id}</Badge>
             </div>
-            <h2 className="text-2xl font-bold text-slate-950">{cambio?.titulo}</h2>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">{cambio?.descripcion || "Sin descripcion registrada."}</p>
-            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500">
+            <h2 className="text-2xl font-bold text-foreground">{cambio?.titulo}</h2>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{cambio?.descripcion || "Sin descripcion registrada."}</p>
+            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
               <p>Creado: {formatDate(cambio?.fecha_creacion)}</p>
               <p>Solicitante: {cambio?.creado_por_nombre || cambio?.creado_por_email || cambio?.creado_por || "No registrado"}</p>
             </div>
@@ -116,10 +130,22 @@ export default function CambioDetallePage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <CardTitle>Comparacion de resultados</CardTitle>
-            <Button variant="outline" size="sm" onClick={invalida}>
-              <RefreshCw className="h-4 w-4" />
-              Actualizar
-            </Button>
+            <div className="flex items-center gap-2">
+              {comparacion?.ia && (
+                <FloatingAssistant
+                  placement="inline"
+                  activoContextoId={cambio?.activo_objetivo_id}
+                  contextPrompt={chatContexto}
+                  initialMessage="Puedo responder preguntas sobre esta solicitud y el analisis IA ya generado."
+                  panelTitle="Chat del analisis"
+                  panelSubtitle={cambio?.titulo ?? "Solicitud seleccionada"}
+                />
+              )}
+              <Button variant="outline" size="sm" onClick={invalida}>
+                <RefreshCw className="h-4 w-4" />
+                Actualizar
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <ComparacionMetodos
@@ -134,12 +160,12 @@ export default function CambioDetallePage() {
       ) : (
         <Card>
           <CardContent className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sky-100 text-sky-700">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
               <ShieldCheck className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="font-semibold text-slate-950">Solicitud registrada</h3>
-              <p className="mt-1 text-sm leading-6 text-slate-500">
+              <h3 className="font-semibold text-foreground">Solicitud registrada</h3>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
                 Tu rol permite registrar y consultar tus solicitudes. El analisis de impacto y la comparacion tecnica son realizados por un analista o administrador.
               </p>
             </div>

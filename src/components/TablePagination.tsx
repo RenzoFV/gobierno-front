@@ -22,7 +22,7 @@ export default function TablePagination({
   const end = Math.min(currentPage * pageSize, totalItems);
 
   return (
-    <div className="flex flex-col gap-3 border-t border-slate-100 px-4 py-3 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 border-t px-4 py-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
       <p>
         Mostrando {start}-{end} de {totalItems} {itemLabel}
       </p>
@@ -36,7 +36,7 @@ export default function TablePagination({
           <ChevronLeft className="h-4 w-4" />
           Anterior
         </Button>
-        <span className="min-w-20 text-center text-xs font-semibold text-slate-500">
+        <span className="min-w-20 text-center text-xs font-semibold text-muted-foreground">
           {currentPage} / {totalPages}
         </span>
         <Button

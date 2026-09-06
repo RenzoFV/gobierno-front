@@ -27,13 +27,13 @@ export default function GrafoPage() {
         <CardContent className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap gap-3">
             {legend.map(([label, color]) => (
-              <div key={label} className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+              <div key={label} className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
                 <span className="h-3 w-3 rounded-full" style={{ backgroundColor: color }} />
                 {label}
               </div>
             ))}
           </div>
-          <p className="text-xs text-slate-500">El tamano del nodo representa criticidad. Las lineas punteadas conectan activos con procesos.</p>
+          <p className="text-xs text-muted-foreground">El tamano del nodo representa criticidad. Las lineas punteadas conectan activos con procesos.</p>
         </CardContent>
       </Card>
 
@@ -45,16 +45,16 @@ export default function GrafoPage() {
       )}
       {error && (
         <Card>
-          <CardContent className="py-12 text-center text-sm text-red-600">No se pudo cargar el grafo de dependencias.</CardContent>
+          <CardContent className="py-12 text-center text-sm text-destructive">No se pudo cargar el grafo de dependencias.</CardContent>
         </Card>
       )}
       {empty && (
         <Card>
-          <CardContent className="py-12 text-center text-sm text-slate-500">Aun no hay activos o procesos para visualizar.</CardContent>
+          <CardContent className="py-12 text-center text-sm text-muted-foreground">Aun no hay activos o procesos para visualizar.</CardContent>
         </Card>
       )}
       {data && !empty && (
-        <div className="h-[calc(100vh-220px)] min-h-[520px] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="h-[calc(100vh-220px)] min-h-[520px] overflow-hidden rounded-lg border bg-card shadow-sm">
           <GraphView activos={data.activos} procesos={data.procesos} dependencias={data.dependencias} soporta={data.soporta} />
         </div>
       )}

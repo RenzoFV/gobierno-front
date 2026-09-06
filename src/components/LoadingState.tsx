@@ -10,14 +10,14 @@ export default function LoadingState({
 }) {
   return (
     <div className={cn("flex min-h-[360px] animate-page items-center justify-center", className)}>
-      <div className="flex flex-col items-center gap-4 rounded-lg border border-slate-200 bg-white px-8 py-7 text-center shadow-sm">
-        <div className="relative flex h-14 w-14 items-center justify-center rounded-lg bg-sky-100 text-sky-700">
-          <span className="absolute inset-0 rounded-lg bg-sky-300/40 animate-ping" />
+      <div className="flex flex-col items-center gap-4 rounded-lg border bg-card px-8 py-7 text-center text-card-foreground shadow-sm">
+        <div className="relative flex h-14 w-14 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+          <span className="absolute inset-0 rounded-lg bg-primary/20 animate-ping" />
           <Bot className="relative h-6 w-6" />
         </div>
         <div>
-          <p className="font-semibold text-slate-900">{label}</p>
-          <p className="mt-1 text-sm text-slate-500">Preparando la vista.</p>
+          <p className="font-semibold text-foreground">{label}</p>
+          <p className="mt-1 text-sm text-muted-foreground">Preparando la vista.</p>
         </div>
       </div>
     </div>

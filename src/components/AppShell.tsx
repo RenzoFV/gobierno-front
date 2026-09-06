@@ -1,15 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Boxes,
   Bot,
-  ChevronLeft,
-  ChevronRight,
+  ChevronsUpDown,
   GitBranch,
   LayoutDashboard,
   LogOut,
   Menu,
   Network,
+  ShieldCheck,
   UserCircle,
   X,
 } from "lucide-react";
@@ -72,14 +73,9 @@ export default function AppShell() {
   const { usuario, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(() => localStorage.getItem("sidebar-collapsed") === "true");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const puedeUsarAsistente = usuario?.rol === "admin" || usuario?.rol === "analista";
-
-  useEffect(() => {
-    localStorage.setItem("sidebar-collapsed", String(collapsed));
-  }, [collapsed]);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -105,43 +101,35 @@ export default function AppShell() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
+    <div className="min-h-screen bg-background text-foreground">
       <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-40 hidden border-r border-slate-200 bg-white text-slate-900 shadow-sm transition-all duration-200 lg:flex lg:flex-col",
-          collapsed ? "w-28" : "w-72",
-        )}
+        className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-sidebar-border bg-[hsl(var(--sidebar))] text-[hsl(var(--sidebar-foreground))] lg:flex lg:flex-col"
       >
-        <SidebarContent
-          collapsed={collapsed}
-          usuario={usuario}
-          onLogout={() => setConfirmLogout(true)}
-          onToggle={() => setCollapsed((value) => !value)}
-        />
+        <SidebarContent usuario={usuario} onLogout={() => setConfirmLogout(true)} />
       </aside>
 
       {mobileOpen && (
         <div className="fixed inset-0 z-50 animate-fade lg:hidden">
-          <button className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm" aria-label="Cerrar menu" onClick={() => setMobileOpen(false)} />
-          <aside className="relative flex h-full w-72 animate-slide-left flex-col bg-white text-slate-900 shadow-2xl">
-            <Button variant="ghost" size="icon" className="absolute right-3 top-3 text-slate-500 hover:bg-slate-100 hover:text-slate-950" onClick={() => setMobileOpen(false)}>
+          <button className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" aria-label="Cerrar menu" onClick={() => setMobileOpen(false)} />
+          <aside className="relative z-10 flex h-full w-72 animate-slide-left flex-col border-r border-sidebar-border bg-[hsl(var(--sidebar))] text-[hsl(var(--sidebar-foreground))] shadow-2xl">
+            <Button variant="ghost" size="icon" className="absolute right-3 top-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" onClick={() => setMobileOpen(false)}>
               <X className="h-5 w-5" />
             </Button>
-            <SidebarContent collapsed={false} usuario={usuario} onLogout={() => setConfirmLogout(true)} />
+            <SidebarContent usuario={usuario} onLogout={() => setConfirmLogout(true)} />
           </aside>
         </div>
       )}
 
-      <div className={cn("min-h-screen transition-all duration-200", collapsed ? "lg:pl-28" : "lg:pl-72")}>
-        <header className="sticky top-0 z-30 border-b border-slate-200 bg-slate-100/90 px-4 py-3 backdrop-blur md:px-6">
+      <div className="min-h-screen lg:pl-72">
+        <header className="sticky top-0 z-30 border-b bg-background/90 px-4 py-3 backdrop-blur md:px-6">
           <div className="flex items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
               <Button variant="outline" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Abrir menu">
                 <Menu className="h-5 w-5" />
               </Button>
               <div className="min-w-0">
-                <h1 className="truncate text-xl font-bold text-slate-950">{page.title}</h1>
-                <p className="hidden truncate text-sm text-slate-500 sm:block">{page.description}</p>
+                <h1 className="truncate text-xl font-bold text-foreground">{page.title}</h1>
+                <p className="hidden truncate text-sm text-muted-foreground sm:block">{page.description}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -151,7 +139,7 @@ export default function AppShell() {
                 </Tooltip>
               )}
               <Tooltip label={usuario?.nombre ?? "Usuario"} side="bottom">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm" aria-label={usuario?.nombre ?? "Usuario"}>
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border bg-card text-muted-foreground shadow-sm" aria-label={usuario?.nombre ?? "Usuario"}>
                   <UserCircle className="h-5 w-5" />
                 </div>
               </Tooltip>
@@ -195,52 +183,32 @@ function visibleNavigation(rol?: Rol | string | null) {
 }
 
 function SidebarContent({
-  collapsed,
   usuario,
   onLogout,
-  onToggle,
 }: {
-  collapsed: boolean;
   usuario: { nombre: string; email: string; rol: string } | null;
   onLogout: () => void;
-  onToggle?: () => void;
 }) {
   const itemsVisibles = visibleNavigation(usuario?.rol);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const footerRef = useRef<HTMLDivElement>(null);
 
   return (
     <>
-      <div className={cn("flex h-20 items-center gap-3 border-b border-slate-100", collapsed ? "px-3" : "px-5")}>
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-sky-100 text-sky-700 shadow-sm shadow-sky-100">
+      <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-4 pr-14 lg:pr-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
           <Bot className="h-5 w-5" />
         </div>
-        {!collapsed && (
-          <div className="min-w-0">
-            <p className="truncate text-sm font-bold text-slate-950">Change Impact</p>
-            <p className="truncate text-xs text-slate-500">Analyzer</p>
-          </div>
-        )}
-        {onToggle && (
-          <Tooltip label={collapsed ? "Expandir" : "Contraer"}>
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn(
-                "ml-auto hidden text-slate-400 hover:bg-slate-100 hover:text-slate-950 lg:inline-flex",
-                collapsed && "h-9 w-9 shrink-0",
-              )}
-              onClick={onToggle}
-              aria-label={collapsed ? "Expandir sidebar" : "Contraer sidebar"}
-            >
-              {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-            </Button>
-          </Tooltip>
-        )}
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-sidebar-foreground">Change Impact</p>
+          <p className="truncate text-xs text-sidebar-foreground/60">Analyzer</p>
+        </div>
       </div>
 
-      <nav className="flex-1 space-y-6 px-3 py-5">
+      <nav className="flex-1 space-y-5 px-3 py-4">
         {itemsVisibles.map((group) => (
           <div key={group.label}>
-            {!collapsed && <p className="mb-2 px-3 text-xs font-semibold uppercase text-slate-400">{group.label}</p>}
+            <p className="mb-2 px-3 text-xs font-medium text-sidebar-foreground/45">{group.label}</p>
             <div className="space-y-1">
               {group.items.map((item) => (
                 <NavLink
@@ -248,15 +216,13 @@ function SidebarContent({
                   to={item.to}
                   className={({ isActive }) =>
                     cn(
-                      "flex h-11 items-center gap-3 rounded-md border border-transparent px-3 text-sm font-semibold text-slate-600 transition hover:border-slate-200 hover:bg-slate-50 hover:text-slate-950",
-                      collapsed && "justify-center px-0",
-                      isActive && "border-sky-100 bg-sky-50 text-sky-700 shadow-sm shadow-sky-100 hover:border-sky-100 hover:bg-sky-50 hover:text-sky-700",
+                      "flex h-9 items-center gap-3 rounded-md px-3 text-sm font-medium text-sidebar-foreground/75 outline-none transition hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+                      isActive && "bg-sidebar-accent text-sidebar-accent-foreground",
                     )
                   }
-                  title={collapsed ? item.label : undefined}
                 >
                   <item.icon className="h-5 w-5 shrink-0" />
-                  {!collapsed && <span>{item.label}</span>}
+                  <span>{item.label}</span>
                 </NavLink>
               ))}
             </div>
@@ -264,27 +230,70 @@ function SidebarContent({
         ))}
       </nav>
 
-      <div className="space-y-3 border-t border-slate-100 p-3">
-        {!collapsed && (
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-            <p className="truncate text-sm font-semibold text-slate-950">{usuario?.nombre ?? "Usuario"}</p>
-            <p className="truncate text-xs text-slate-500">{usuario?.email ?? "Sin correo"}</p>
-            <p className="mt-2 inline-flex rounded-full bg-sky-100 px-2 py-1 text-xs font-semibold capitalize text-sky-700">
-              {usuario?.rol ?? "rol"}
-            </p>
+      <div
+        ref={footerRef}
+        className="relative border-t border-sidebar-border p-3"
+        onBlur={(event) => {
+          if (!footerRef.current?.contains(event.relatedTarget as Node | null)) {
+            setUserMenuOpen(false);
+          }
+        }}
+      >
+        <button
+          type="button"
+          className={cn(
+            "flex w-full items-center gap-3 rounded-md text-left text-sidebar-foreground outline-none transition hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+            "px-2 py-2",
+            userMenuOpen && "bg-sidebar-accent text-sidebar-accent-foreground",
+          )}
+          onClick={() => setUserMenuOpen((value) => !value)}
+          aria-expanded={userMenuOpen}
+          aria-label="Abrir menu de usuario"
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground">
+            <UserCircle className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold">{usuario?.nombre ?? "Usuario"}</p>
+            <p className="truncate text-xs text-sidebar-foreground/60">{usuario?.email ?? "Sin correo"}</p>
+          </div>
+          <ChevronsUpDown className="h-4 w-4 text-sidebar-foreground/50" />
+        </button>
+
+        {userMenuOpen && (
+          <div className="absolute bottom-16 left-3 right-3 z-50 overflow-hidden rounded-lg border bg-[hsl(var(--popover))] text-[hsl(var(--popover-foreground))] shadow-2xl ring-1 ring-border lg:bottom-3 lg:left-full lg:right-auto lg:ml-2 lg:w-56">
+            <div className="flex items-center gap-3 border-b px-3 py-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground">
+                <UserCircle className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">{usuario?.nombre ?? "Usuario"}</p>
+                <p className="truncate text-xs text-muted-foreground">{usuario?.email ?? "Sin correo"}</p>
+              </div>
+            </div>
+            <div className="border-b p-1">
+              <MenuItem icon={<ShieldCheck className="h-4 w-4" />} label={usuario?.rol ?? "Rol"} />
+              <MenuItem icon={<UserCircle className="h-4 w-4" />} label="Cuenta" />
+            </div>
+            <div className="p-1">
+              <MenuItem icon={<LogOut className="h-4 w-4" />} label="Cerrar sesion" onClick={onLogout} />
+            </div>
           </div>
         )}
-        <Button
-          variant="destructive"
-          className={cn("w-full border border-red-100 bg-red-50 text-red-700 shadow-none hover:bg-red-100", collapsed && "px-0")}
-          onClick={onLogout}
-          aria-label="Salir"
-          title={collapsed ? "Salir" : undefined}
-        >
-          <LogOut className="h-4 w-4" />
-          {!collapsed && "Salir"}
-        </Button>
       </div>
     </>
+  );
+}
+
+function MenuItem({ icon, label, onClick }: { icon: ReactNode; label: string; onClick?: () => void }) {
+  return (
+    <button
+      type="button"
+      className="flex h-9 w-full items-center gap-2 rounded-md px-2 text-left text-sm font-medium text-foreground outline-none transition hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring"
+      onClick={onClick}
+    >
+      {icon}
+      <span className="truncate capitalize">{label}</span>
+    </button>
   );
 }

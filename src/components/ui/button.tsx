@@ -3,7 +3,7 @@ import { Slot } from "@radix-ui/react-slot";
 import { cn } from "../../lib/utils";
 
 type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "destructive" | "success";
-type ButtonSize = "sm" | "md" | "icon";
+type ButtonSize = "sm" | "md" | "lg" | "icon";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean;
@@ -13,17 +13,18 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants: Record<ButtonVariant, string> = {
-  primary: "bg-sky-600 text-white shadow-sm shadow-sky-200 hover:bg-sky-700",
-  secondary: "bg-slate-900 text-white hover:bg-slate-800",
-  outline: "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
-  ghost: "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
-  destructive: "bg-red-600 text-white shadow-sm shadow-red-200 hover:bg-red-700",
-  success: "bg-emerald-600 text-white shadow-sm shadow-emerald-200 hover:bg-emerald-700",
+  primary: "bg-primary text-primary-foreground shadow hover:bg-primary/90",
+  secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/90",
+  outline: "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
+  ghost: "hover:bg-accent hover:text-accent-foreground",
+  destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+  success: "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700",
 };
 
 const sizes: Record<ButtonSize, string> = {
   sm: "h-9 gap-2 px-3 text-xs",
   md: "h-10 gap-2 px-4 text-sm",
+  lg: "h-11 gap-2 px-8 text-sm",
   icon: "h-10 w-10 p-0",
 };
 
@@ -34,7 +35,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <Comp
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center rounded-md font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 disabled:pointer-events-none disabled:opacity-55",
+          "inline-flex items-center justify-center rounded-md font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-55",
           variants[variant],
           sizes[size],
           className,

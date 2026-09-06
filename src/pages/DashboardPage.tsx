@@ -7,6 +7,7 @@ import LoadingState from "../components/LoadingState";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
 import { Badge } from "../components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import TablePagination from "../components/TablePagination";
 import { formatDate } from "../lib/utils";
 
@@ -49,28 +50,28 @@ export default function DashboardPage() {
       label: "Solicitudes",
       value: resumen?.total_cambios ?? 0,
       icon: Activity,
-      color: "bg-sky-100 text-sky-700",
+      color: "bg-accent text-accent-foreground",
       hint: "cambios registrados",
     },
     {
       label: "Alto riesgo",
       value: resumen?.cambios_alto_riesgo ?? 0,
       icon: AlertTriangle,
-      color: "bg-red-100 text-red-700",
+      color: "bg-destructive/10 text-destructive",
       hint: "por motor de reglas",
     },
     {
       label: "Activos criticos",
       value: resumen?.activos_mas_criticos?.length ?? 0,
       icon: Layers,
-      color: "bg-violet-100 text-violet-700",
+      color: "bg-secondary/10 text-secondary",
       hint: "con impacto repetido",
     },
     {
       label: "Areas impactadas",
       value: resumen?.areas_mas_impactadas?.length ?? 0,
       icon: TrendingUp,
-      color: "bg-emerald-100 text-emerald-700",
+      color: "bg-primary/10 text-primary",
       hint: "en historial",
     },
   ];
@@ -96,9 +97,9 @@ export default function DashboardPage() {
           <Card key={stat.label} className="animate-pop" style={{ animationDelay: `${index * 45}ms` }}>
             <CardContent className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-medium text-slate-500">{stat.label}</p>
-                <p className="mt-2 text-3xl font-bold text-slate-950">{stat.value}</p>
-                <p className="mt-1 text-xs text-slate-400">{stat.hint}</p>
+                <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
+                <p className="mt-2 text-3xl font-bold text-foreground">{stat.value}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{stat.hint}</p>
               </div>
               <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${stat.color}`}>
                 <stat.icon className="h-5 w-5" />
@@ -116,10 +117,10 @@ export default function DashboardPage() {
           <CardContent className="space-y-3">
             {(resumen?.activos_mas_criticos ?? []).length > 0 ? (
               resumen?.activos_mas_criticos.map((activo, index) => (
-                <div key={activo.id} className="flex animate-slide-up items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-4 py-3" style={{ animationDelay: `${index * 45}ms` }}>
+                <div key={activo.id} className="flex animate-slide-up items-center justify-between rounded-lg border bg-muted/60 px-4 py-3" style={{ animationDelay: `${index * 45}ms` }}>
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-sky-100 text-sm font-bold text-sky-700">{index + 1}</span>
-                    <p className="truncate font-semibold text-slate-800">{activo.nombre}</p>
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-accent text-sm font-bold text-accent-foreground">{index + 1}</span>
+                    <p className="truncate font-semibold text-foreground">{activo.nombre}</p>
                   </div>
                   <Badge variant="sky">{activo.veces} impacto(s)</Badge>
                 </div>
@@ -137,8 +138,8 @@ export default function DashboardPage() {
           <CardContent className="space-y-3">
             {(resumen?.areas_mas_impactadas ?? []).length > 0 ? (
               resumen?.areas_mas_impactadas.map((area, index) => (
-                <div key={area.area} className="flex animate-slide-up items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-4 py-3" style={{ animationDelay: `${index * 45}ms` }}>
-                  <p className="truncate font-semibold text-slate-800">{area.area}</p>
+                <div key={area.area} className="flex animate-slide-up items-center justify-between rounded-lg border bg-muted/60 px-4 py-3" style={{ animationDelay: `${index * 45}ms` }}>
+                  <p className="truncate font-semibold text-foreground">{area.area}</p>
                   <Badge variant="emerald">{area.cantidad} cambio(s)</Badge>
                 </div>
               ))
@@ -154,40 +155,40 @@ export default function DashboardPage() {
           <CardTitle>Historial de analisis</CardTitle>
         </CardHeader>
         <div className="overflow-x-auto">
-          <table className="table-base">
-            <thead className="table-head">
-              <tr>
-                <th className="table-cell">Titulo</th>
-                <th className="table-cell">Fecha</th>
-                <th className="table-cell">Estado</th>
-                <th className="table-cell">Riesgo regla</th>
-                <th className="table-cell">Riesgo IA</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
+          <Table className="min-w-[760px]">
+            <TableHeader className="bg-muted">
+              <TableRow>
+                <TableHead>Titulo</TableHead>
+                <TableHead>Fecha</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead>Riesgo regla</TableHead>
+                <TableHead>Riesgo IA</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {cargandoHistorial && (
-                <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-slate-400">Cargando historial...</td>
-                </tr>
+                <TableRow>
+                  <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">Cargando historial...</TableCell>
+                </TableRow>
               )}
               {historialPaginado.map((item) => (
-                <tr key={item.cambio_id} className="animate-fade bg-white">
-                  <td className="table-cell font-semibold text-slate-800">{item.titulo}</td>
-                  <td className="table-cell text-slate-500">{formatDate(item.fecha)}</td>
-                  <td className="table-cell"><Badge>{item.estado}</Badge></td>
-                  <td className="table-cell"><RiesgoBadge nivel={item.nivel_riesgo_regla} /></td>
-                  <td className="table-cell"><RiesgoBadge nivel={item.nivel_riesgo_ia} /></td>
-                </tr>
+                <TableRow key={item.cambio_id} className="animate-fade">
+                  <TableCell className="font-semibold text-foreground">{item.titulo}</TableCell>
+                  <TableCell className="text-muted-foreground">{formatDate(item.fecha)}</TableCell>
+                  <TableCell><Badge>{item.estado}</Badge></TableCell>
+                  <TableCell><RiesgoBadge nivel={item.nivel_riesgo_regla} /></TableCell>
+                  <TableCell><RiesgoBadge nivel={item.nivel_riesgo_ia} /></TableCell>
+                </TableRow>
               ))}
               {historial?.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-4 py-10">
+                <TableRow>
+                  <TableCell colSpan={5} className="py-10">
                     <EmptyState title="Sin cambios aun" description="Registra una solicitud y ejecuta un analisis para ver actividad." />
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
         {!cargandoHistorial && (historial?.length ?? 0) > 0 && (
           <TablePagination
@@ -205,9 +206,9 @@ export default function DashboardPage() {
 
 function EmptyState({ title, description }: { title: string; description: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center">
-      <p className="font-semibold text-slate-700">{title}</p>
-      <p className="mt-1 text-sm text-slate-500">{description}</p>
+    <div className="rounded-lg border border-dashed bg-muted/60 px-4 py-8 text-center">
+      <p className="font-semibold text-foreground">{title}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{description}</p>
     </div>
   );
 }

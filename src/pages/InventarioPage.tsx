@@ -16,6 +16,8 @@ import { cn, userMessage } from "../lib/utils";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs";
 import TablePagination from "../components/TablePagination";
 import {
   Dialog,
@@ -66,13 +68,13 @@ export default function InventarioPage() {
 
   const metricas = useMemo(
     () => [
-      { label: "Activos", value: activos?.length ?? 0, icon: Boxes, color: "bg-sky-100 text-sky-700" },
-      { label: "Procesos", value: procesos?.length ?? 0, icon: BriefcaseBusiness, color: "bg-violet-100 text-violet-700" },
+      { label: "Activos", value: activos?.length ?? 0, icon: Boxes, color: "bg-accent text-accent-foreground" },
+      { label: "Procesos", value: procesos?.length ?? 0, icon: BriefcaseBusiness, color: "bg-secondary/10 text-secondary" },
       {
         label: "Criticidad promedio",
         value: activos?.length ? (activos.reduce((sum, activo) => sum + activo.criticidad_base, 0) / activos.length).toFixed(1) : "0",
         icon: Boxes,
-        color: "bg-amber-100 text-amber-800",
+        color: "bg-primary/10 text-primary",
       },
     ],
     [activos, procesos],
@@ -117,8 +119,8 @@ export default function InventarioPage() {
           <Card key={metrica.label} className="animate-pop" style={{ animationDelay: `${index * 45}ms` }}>
             <CardContent className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-medium text-slate-500">{metrica.label}</p>
-                <p className="mt-2 text-3xl font-bold text-slate-950">{metrica.value}</p>
+                <p className="text-sm font-medium text-muted-foreground">{metrica.label}</p>
+                <p className="mt-2 text-3xl font-bold text-foreground">{metrica.value}</p>
               </div>
               <div className={cn("flex h-12 w-12 items-center justify-center rounded-lg", metrica.color)}>
                 <metrica.icon className="h-5 w-5" />
@@ -129,21 +131,13 @@ export default function InventarioPage() {
       </div>
 
       <Card>
-        <div className="flex flex-col gap-4 border-b border-slate-100 p-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="inline-flex rounded-lg bg-slate-100 p-1">
-            <button
-              className={cn("rounded-md px-4 py-2 text-sm font-semibold transition", tab === "activos" ? "bg-white text-slate-950 shadow-sm" : "text-slate-500")}
-              onClick={() => setTab("activos")}
-            >
-              Activos
-            </button>
-            <button
-              className={cn("rounded-md px-4 py-2 text-sm font-semibold transition", tab === "procesos" ? "bg-white text-slate-950 shadow-sm" : "text-slate-500")}
-              onClick={() => setTab("procesos")}
-            >
-              Procesos
-            </button>
-          </div>
+        <div className="flex flex-col gap-4 border-b p-4 lg:flex-row lg:items-center lg:justify-between">
+          <Tabs value={tab} onValueChange={(value) => setTab(value as "activos" | "procesos")} className="w-auto">
+            <TabsList>
+              <TabsTrigger value="activos">Activos</TabsTrigger>
+              <TabsTrigger value="procesos">Procesos</TabsTrigger>
+            </TabsList>
+          </Tabs>
 
           {esAdmin && (
             <div className="flex flex-col gap-2 sm:flex-row">
@@ -218,36 +212,36 @@ export default function InventarioPage() {
         {tab === "activos" ? (
           <>
           <div className="overflow-x-auto">
-            <table className="table-base">
-              <thead className="table-head">
-                <tr>
-                  <th className="table-cell">Nombre</th>
-                  <th className="table-cell">Tipo</th>
-                  <th className="table-cell">Criticidad</th>
-                  <th className="table-cell">Descripcion</th>
-                  {esAdmin && <th className="table-cell text-right">Acciones</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
+            <Table className="min-w-[760px]">
+              <TableHeader className="bg-muted">
+                <TableRow>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Criticidad</TableHead>
+                  <TableHead>Descripcion</TableHead>
+                  {esAdmin && <TableHead className="text-right">Acciones</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {isLoading && <LoadingRows colSpan={esAdmin ? 5 : 4} />}
                 {activosPaginados.map((activo) => (
-                  <tr key={activo.id} className="animate-fade">
-                    <td className="table-cell font-semibold text-slate-800">{activo.nombre}</td>
-                    <td className="table-cell"><Badge variant="sky">{activo.tipo}</Badge></td>
-                    <td className="table-cell"><Badge variant="amber">{activo.criticidad_base}/5</Badge></td>
-                    <td className="table-cell max-w-md truncate text-slate-500">{activo.descripcion || "Sin descripcion"}</td>
+                  <TableRow key={activo.id} className="animate-fade">
+                    <TableCell className="font-semibold text-foreground">{activo.nombre}</TableCell>
+                    <TableCell><Badge variant="sky">{activo.tipo}</Badge></TableCell>
+                    <TableCell><Badge variant="amber">{activo.criticidad_base}/5</Badge></TableCell>
+                    <TableCell className="max-w-md truncate text-muted-foreground">{activo.descripcion || "Sin descripcion"}</TableCell>
                     {esAdmin && (
-                      <td className="table-cell text-right">
-                        <Button variant="ghost" size="icon" className="text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => setActivoAEliminar(activo)} aria-label={`Eliminar ${activo.nombre}`}>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setActivoAEliminar(activo)} aria-label={`Eliminar ${activo.nombre}`}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                      </td>
+                      </TableCell>
                     )}
-                  </tr>
+                  </TableRow>
                 ))}
                 {activos?.length === 0 && <EmptyRow colSpan={esAdmin ? 5 : 4} text="No hay activos registrados." />}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
           {!isLoading && (activos?.length ?? 0) > 0 && (
             <TablePagination
@@ -262,26 +256,26 @@ export default function InventarioPage() {
         ) : (
           <>
           <div className="overflow-x-auto">
-            <table className="table-base">
-              <thead className="table-head">
-                <tr>
-                  <th className="table-cell">Nombre</th>
-                  <th className="table-cell">Area</th>
-                  <th className="table-cell">Criticidad</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
+            <Table className="min-w-[760px]">
+              <TableHeader className="bg-muted">
+                <TableRow>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>Area</TableHead>
+                  <TableHead>Criticidad</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {cargandoProcesos && <LoadingRows colSpan={3} />}
                 {procesosPaginados.map((proceso) => (
-                  <tr key={proceso.id} className="animate-fade">
-                    <td className="table-cell font-semibold text-slate-800">{proceso.nombre}</td>
-                    <td className="table-cell text-slate-600">{proceso.area}</td>
-                    <td className="table-cell"><Badge variant="violet">{proceso.criticidad_negocio}/5</Badge></td>
-                  </tr>
+                  <TableRow key={proceso.id} className="animate-fade">
+                    <TableCell className="font-semibold text-foreground">{proceso.nombre}</TableCell>
+                    <TableCell className="text-muted-foreground">{proceso.area}</TableCell>
+                    <TableCell><Badge variant="violet">{proceso.criticidad_negocio}/5</Badge></TableCell>
+                  </TableRow>
                 ))}
                 {procesos?.length === 0 && <EmptyRow colSpan={3} text="No hay procesos registrados." />}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
           {!cargandoProcesos && (procesos?.length ?? 0) > 0 && (
             <TablePagination
@@ -328,18 +322,18 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 
 function LoadingRows({ colSpan }: { colSpan: number }) {
   return (
-    <tr>
-      <td colSpan={colSpan} className="px-4 py-8">
+    <TableRow>
+      <TableCell colSpan={colSpan} className="py-8">
         <Skeleton className="h-10 w-full" />
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }
 
 function EmptyRow({ colSpan, text }: { colSpan: number; text: string }) {
   return (
-    <tr>
-      <td colSpan={colSpan} className="px-4 py-10 text-center text-sm text-slate-500">{text}</td>
-    </tr>
+    <TableRow>
+      <TableCell colSpan={colSpan} className="py-10 text-center text-sm text-muted-foreground">{text}</TableCell>
+    </TableRow>
   );
 }

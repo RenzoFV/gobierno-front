@@ -57,13 +57,13 @@ export default function ComparacionMetodos({ regla, ia, coincidencia, activos = 
         <Card className="animate-slide-up p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <div className="mb-2 flex items-center gap-2 text-slate-950">
-                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              <div className="mb-2 flex items-center gap-2 text-foreground">
+                <CheckCircle2 className="h-5 w-5 text-primary" />
                 <h3 className="font-semibold">Coincidencia de activos recuperados</h3>
               </div>
-              <p className="text-sm text-slate-500">Comparacion entre los activos afectados por reglas y los activos recuperados por IA mediante herramientas del grafo.</p>
+              <p className="text-sm text-muted-foreground">Comparacion entre los activos afectados por reglas y los activos recuperados por IA mediante herramientas del grafo.</p>
             </div>
-            <p className="text-3xl font-bold text-sky-700">{((coincidencia ?? 0) * 100).toFixed(1)}%</p>
+            <p className="text-3xl font-bold text-primary">{((coincidencia ?? 0) * 100).toFixed(1)}%</p>
           </div>
           <div className="mt-4 grid gap-3 lg:grid-cols-3">
             <ListBlock title={`En comun (${comunes.length})`} values={comunes} labelFor={nombreActivo} />
@@ -72,7 +72,7 @@ export default function ComparacionMetodos({ regla, ia, coincidencia, activos = 
           </div>
         </Card>
       ) : (
-        <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+        <div className="rounded-lg border border-dashed bg-muted/60 px-4 py-8 text-center text-sm text-muted-foreground">
           Genera ambos analisis para ver la coincidencia de activos.
         </div>
       )}
@@ -102,8 +102,8 @@ function AnalysisCard({
     <Card className="animate-pop p-5">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-100 text-sky-700">{icon}</div>
-          <h3 className="font-semibold text-slate-950">{title}</h3>
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-accent-foreground">{icon}</div>
+          <h3 className="font-semibold text-foreground">{title}</h3>
         </div>
         {data ? (calculaRiesgo ? <RiesgoBadge nivel={data.nivel_riesgo || null} /> : <Badge>No calculado</Badge>) : <Badge>Sin analisis</Badge>}
       </div>
@@ -115,7 +115,7 @@ function AnalysisCard({
             <Metric label="Activos" value={String(data.activos_afectados?.length ?? 0)} />
             <Metric label="Procesos" value={String(data.procesos_afectados?.length ?? 0)} />
           </div>
-          <div className="flex items-center gap-2 text-slate-500">
+          <div className="flex items-center gap-2 text-muted-foreground">
             <Timer className="h-4 w-4" />
             {data.tiempo_analisis_ms} ms
           </div>
@@ -141,22 +141,22 @@ function AnalysisCard({
           </div>
           {data.recomendaciones?.length > 0 && (
             <div>
-              <p className="mb-2 font-semibold text-slate-800">Recomendaciones</p>
+              <p className="mb-2 font-semibold text-foreground">Recomendaciones</p>
               <ul className="space-y-2">
                 {data.recomendaciones.map((item, index) => (
-                  <li key={index} className="rounded-md bg-slate-50 px-3 py-2 text-slate-600">{item}</li>
+                  <li key={index} className="rounded-md border bg-white px-3 py-2 text-foreground">{item}</li>
                 ))}
               </ul>
             </div>
           )}
           {data.respuesta_texto && (
-            <div className="max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-3 leading-6 text-slate-600">
-              <p className="whitespace-pre-wrap">{data.respuesta_texto}</p>
+            <div className="max-h-80 overflow-y-auto rounded-lg border bg-white p-4 text-sm leading-6 text-foreground">
+              <FormattedAiResponse text={data.respuesta_texto} />
             </div>
           )}
         </div>
       ) : (
-        <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">{empty}</p>
+        <p className="rounded-lg border border-dashed bg-muted/60 px-4 py-8 text-center text-sm text-muted-foreground">{empty}</p>
       )}
     </Card>
   );
@@ -178,25 +178,25 @@ function DisclosureList({
   const uniqueValues = Array.from(new Set(values.filter(Boolean)));
 
   return (
-    <details className="group rounded-lg bg-slate-50 p-3">
+    <details className="group rounded-lg border bg-white p-3">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
-        <span className="text-xs font-semibold uppercase text-slate-500">{title}</span>
+        <span className="text-xs font-semibold uppercase text-secondary">{title}</span>
         <span className="flex items-center gap-2">
           <Badge variant="slate">{uniqueValues.length}</Badge>
-          <ChevronDown className="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180" />
+          <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
         </span>
       </summary>
       {uniqueValues.length ? (
         <ul className="mt-3 max-h-40 space-y-2 overflow-y-auto pr-1">
           {uniqueValues.map((id) => (
-            <li key={id} className="rounded-md bg-white px-3 py-2 shadow-sm shadow-slate-100">
-              <p className="font-medium text-slate-700">{labelFor(id)}</p>
-              <p className="mt-0.5 text-xs text-slate-500">{detailFor(id)}</p>
+            <li key={id} className="rounded-md bg-muted/70 px-3 py-2">
+              <p className="font-medium text-foreground">{labelFor(id)}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{detailFor(id)}</p>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="mt-3 rounded-md bg-white px-3 py-2 text-sm text-slate-400">{emptyLabel}</p>
+        <p className="mt-3 rounded-md bg-muted/70 px-3 py-2 text-sm text-muted-foreground">{emptyLabel}</p>
       )}
     </details>
   );
@@ -206,20 +206,85 @@ function Metric({ label, value }: { label: string; value: string }) {
   const compact = value.length > 10;
 
   return (
-    <div className="rounded-lg bg-slate-50 p-3">
-      <p className="text-xs font-medium text-slate-500">{label}</p>
-      <p className={`mt-1 font-bold text-slate-950 ${compact ? "text-xs leading-4" : "text-lg"}`}>{value}</p>
+    <div className="rounded-lg border bg-white p-3">
+      <p className="text-xs font-semibold text-secondary">{label}</p>
+      <p className={`mt-1 font-bold text-foreground ${compact ? "text-sm leading-5" : "text-lg"}`}>{value}</p>
     </div>
   );
 }
 
 function ListBlock({ title, values, labelFor }: { title: string; values: string[]; labelFor?: (id: string) => string }) {
   return (
-    <div className="rounded-lg bg-slate-50 p-3">
-      <p className="mb-2 text-xs font-semibold uppercase text-slate-500">{title}</p>
+    <div className="rounded-lg border bg-white p-3">
+      <p className="mb-2 text-xs font-semibold uppercase text-secondary">{title}</p>
       <div className="flex flex-wrap gap-2">
-        {values.length ? values.map((value) => <Badge key={value} variant="sky">{labelFor?.(value) ?? value}</Badge>) : <span className="text-sm text-slate-400">Ninguno</span>}
+        {values.length ? values.map((value) => <Badge key={value} variant="sky">{labelFor?.(value) ?? value}</Badge>) : <span className="text-sm text-muted-foreground">Ninguno</span>}
       </div>
     </div>
   );
+}
+
+function FormattedAiResponse({ text }: { text: string }) {
+  const elements: ReactNode[] = [];
+  let listItems: string[] = [];
+
+  const flushList = () => {
+    if (!listItems.length) return;
+    const items = listItems;
+    listItems = [];
+    elements.push(
+      <ul key={`list-${elements.length}`} className="my-3 list-disc space-y-1 pl-5">
+        {items.map((item, index) => (
+          <li key={index}>{renderInlineText(item)}</li>
+        ))}
+      </ul>,
+    );
+  };
+
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim();
+
+    if (!line) {
+      flushList();
+      continue;
+    }
+
+    const bullet = line.match(/^[-*]\s+(.*)$/);
+    const numbered = line.match(/^\d+\.\s+(.*)$/);
+    if (bullet || numbered) {
+      listItems.push((bullet?.[1] ?? numbered?.[1] ?? "").trim());
+      continue;
+    }
+
+    flushList();
+
+    const heading = line.match(/^(#{1,4})\s+(.*)$/);
+    if (heading) {
+      elements.push(
+        <h4 key={`heading-${elements.length}`} className="mb-2 mt-4 text-sm font-semibold text-foreground">
+          {renderInlineText(heading[2])}
+        </h4>,
+      );
+      continue;
+    }
+
+    elements.push(
+      <p key={`paragraph-${elements.length}`} className="my-2">
+        {renderInlineText(line)}
+      </p>,
+    );
+  }
+
+  flushList();
+
+  return <div className="space-y-1">{elements}</div>;
+}
+
+function renderInlineText(text: string) {
+  return text.split(/(\*\*[^*]+\*\*)/g).filter(Boolean).map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={index} className="font-semibold text-foreground">{part.slice(2, -2)}</strong>;
+    }
+    return <span key={index}>{part}</span>;
+  });
 }

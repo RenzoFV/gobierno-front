@@ -1,9 +1,11 @@
-import { useState } from "react";
-import { Bot, Eraser, MessageCircle, Minus, Send, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
+import { Bot, Eraser, MessageCircle, Send } from "lucide-react";
 import { toast } from "sonner";
 import { consultarAsistente } from "../api/asistente";
 import { cn } from "../lib/utils";
 import { Button } from "./ui/button";
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "./ui/drawer";
 import { Textarea } from "./ui/form";
 
 interface Mensaje {
@@ -12,15 +14,34 @@ interface Mensaje {
 }
 
 interface FloatingAssistantProps {
-  placement?: "floating" | "nav";
+  placement?: "floating" | "nav" | "inline";
+  activoContextoId?: string | null;
+  contextPrompt?: string;
+  initialMessage?: string;
+  panelTitle?: string;
+  panelSubtitle?: string;
 }
 
-export default function FloatingAssistant({ placement = "floating" }: FloatingAssistantProps) {
+export default function FloatingAssistant({
+  placement = "floating",
+  activoContextoId = null,
+  contextPrompt,
+  initialMessage,
+  panelTitle = "Asistente de analisis",
+  panelSubtitle = "Impacto, riesgos y recomendaciones",
+}: FloatingAssistantProps) {
+  const initialMessages = useMemo<Mensaje[]>(
+    () => (initialMessage ? [{ rol: "assistant", texto: initialMessage }] : []),
+    [initialMessage],
+  );
   const [open, setOpen] = useState(false);
-  const [minimized, setMinimized] = useState(false);
-  const [mensajes, setMensajes] = useState<Mensaje[]>([]);
+  const [mensajes, setMensajes] = useState<Mensaje[]>(initialMessages);
   const [input, setInput] = useState("");
   const [cargando, setCargando] = useState(false);
+
+  useEffect(() => {
+    setMensajes(initialMessages);
+  }, [initialMessages]);
 
   const enviar = async () => {
     const pregunta = input.trim();
@@ -29,7 +50,10 @@ export default function FloatingAssistant({ placement = "floating" }: FloatingAs
     setInput("");
     setCargando(true);
     try {
-      const res = await consultarAsistente(pregunta);
+      const preguntaConContexto = contextPrompt
+        ? `${contextPrompt}\n\nPregunta del usuario: ${pregunta}`
+        : pregunta;
+      const res = await consultarAsistente(preguntaConContexto, activoContextoId);
       setMensajes((current) => [...current, { rol: "assistant", texto: res.respuesta_texto }]);
     } catch {
       const mensaje = "Error al consultar el asistente. Verifica que la OPENAI_API_KEY este configurada.";
@@ -41,104 +65,154 @@ export default function FloatingAssistant({ placement = "floating" }: FloatingAs
   };
 
   const limpiar = () => {
-    setMensajes([]);
+    setMensajes(initialMessages);
     toast.success("Conversacion del asistente limpiada.");
   };
 
   const isNav = placement === "nav";
+  const isInline = placement === "inline";
 
   return (
-    <div className={cn(isNav ? "inline-flex" : "fixed bottom-5 right-5 z-40 flex flex-col items-end gap-3")}>
-      {open && !minimized && (
-        <section
+    <Drawer open={open} onOpenChange={setOpen}>
+      <DrawerTrigger asChild>
+        <Button
+          size="icon"
+          variant={isNav ? "outline" : "primary"}
           className={cn(
-            "flex h-[min(620px,calc(100vh-7rem))] w-[calc(100vw-2.5rem)] max-w-md animate-slide-up flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl",
-            isNav && "fixed right-4 top-20 z-50",
+            "rounded-full transition duration-200",
+            isNav
+              ? "h-10 w-10 bg-card text-muted-foreground shadow-sm hover:bg-accent hover:text-accent-foreground"
+              : isInline
+                ? "h-9 w-9"
+                : "fixed bottom-5 right-5 z-40 h-14 w-14 shadow-xl shadow-primary/20 hover:-translate-y-0.5 max-sm:h-12 max-sm:w-12",
           )}
+          aria-label="Asistente"
+          title="Asistente"
         >
-          <header className="flex items-center justify-between border-b border-slate-100 bg-slate-950 px-4 py-3 text-white">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-sky-400 text-slate-950">
-                <Bot className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <h2 className="truncate text-sm font-semibold">Asistente de analisis</h2>
-                <p className="truncate text-xs text-slate-300">Impacto, riesgos y recomendaciones</p>
-              </div>
-            </div>
-            <div className="flex gap-1">
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-200 hover:bg-white/10 hover:text-white" onClick={limpiar} aria-label="Limpiar conversacion">
-                <Eraser className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-200 hover:bg-white/10 hover:text-white" onClick={() => setMinimized(true)} aria-label="Minimizar">
-                <Minus className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-200 hover:bg-white/10 hover:text-white" onClick={() => setOpen(false)} aria-label="Cerrar">
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </header>
-          <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50 p-4">
-            {mensajes.length === 0 && (
-              <div className="rounded-lg border border-dashed border-slate-200 bg-white p-4 text-center text-sm text-slate-500">
-                Pregunta por impactos, activos afectados o recomendaciones para un cambio.
-              </div>
-            )}
-            {mensajes.map((mensaje, index) => (
-              <div key={index} className={cn("flex animate-pop", mensaje.rol === "user" ? "justify-end" : "justify-start")}>
-                <div
-                  className={cn(
-                    "max-w-[86%] rounded-lg px-3 py-2 text-sm leading-6 shadow-sm",
-                    mensaje.rol === "user" ? "bg-sky-600 text-white" : "border border-slate-200 bg-white text-slate-700",
-                  )}
-                >
-                  <p className="whitespace-pre-wrap">{mensaje.texto}</p>
-                </div>
-              </div>
-            ))}
-            {cargando && <p className="text-xs font-medium text-slate-400">Analizando...</p>}
-          </div>
-          <div className="border-t border-slate-100 p-3">
-            <div className="flex items-end gap-2">
-              <Textarea
-                className="min-h-11 resize-none"
-                rows={1}
-                placeholder="Escribe tu pregunta..."
-                value={input}
-                onChange={(event) => setInput(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey) {
-                    event.preventDefault();
-                    enviar();
-                  }
-                }}
-              />
-              <Button size="icon" disabled={!input.trim() || cargando} onClick={enviar} aria-label="Enviar">
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </section>
-      )}
+          <MessageCircle className="h-5 w-5" />
+        </Button>
+      </DrawerTrigger>
 
-      <Button
-        size="icon"
-        variant={isNav ? "outline" : "primary"}
-        className={cn(
-          "rounded-full transition duration-200",
-          isNav
-            ? "h-10 w-10 border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-sky-50 hover:text-sky-700"
-            : "h-14 w-14 shadow-xl shadow-sky-200 hover:-translate-y-0.5 max-sm:h-12 max-sm:w-12",
-        )}
-        onClick={() => {
-          setOpen(true);
-          setMinimized(false);
-        }}
-        aria-label="Asistente"
-        title="Asistente"
-      >
-        <MessageCircle className="h-5 w-5" />
-      </Button>
-    </div>
+      <DrawerContent>
+        <DrawerHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <Bot className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <DrawerTitle className="truncate">{panelTitle}</DrawerTitle>
+              <DrawerDescription className="truncate">{panelSubtitle}</DrawerDescription>
+            </div>
+          </div>
+          <Button variant="ghost" size="icon" className="mr-8 h-8 w-8" onClick={limpiar} aria-label="Limpiar conversacion">
+            <Eraser className="h-4 w-4" />
+          </Button>
+        </DrawerHeader>
+
+        <div className="flex-1 space-y-3 overflow-y-auto bg-muted/50 p-4">
+          {mensajes.length === 0 && (
+            <div className="rounded-lg border border-dashed bg-white p-4 text-center text-sm text-muted-foreground">
+              Pregunta por impactos, activos afectados o recomendaciones para un cambio.
+            </div>
+          )}
+          {mensajes.map((mensaje, index) => (
+            <div key={index} className={cn("flex animate-pop", mensaje.rol === "user" ? "justify-end" : "justify-start")}>
+              <div
+                className={cn(
+                  "max-w-[88%] rounded-lg px-3 py-2 text-sm leading-6",
+                  mensaje.rol === "user" ? "bg-primary text-primary-foreground" : "border bg-white text-foreground",
+                )}
+              >
+                {mensaje.rol === "assistant" ? <FormattedChatText text={mensaje.texto} /> : <p className="whitespace-pre-wrap">{mensaje.texto}</p>}
+              </div>
+            </div>
+          ))}
+          {cargando && <p className="text-xs font-medium text-muted-foreground">Analizando...</p>}
+        </div>
+
+        <div className="border-t bg-background p-3">
+          <div className="flex items-end gap-2">
+            <Textarea
+              className="min-h-11 resize-none"
+              rows={1}
+              placeholder="Escribe tu pregunta..."
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  enviar();
+                }
+              }}
+            />
+            <Button size="icon" disabled={!input.trim() || cargando} onClick={enviar} aria-label="Enviar">
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </DrawerContent>
+    </Drawer>
   );
+}
+
+function FormattedChatText({ text }: { text: string }) {
+  const elements: ReactNode[] = [];
+  let listItems: string[] = [];
+
+  const flushList = () => {
+    if (!listItems.length) return;
+    const items = listItems;
+    listItems = [];
+    elements.push(
+      <ul key={`list-${elements.length}`} className="my-2 list-disc space-y-1 pl-4">
+        {items.map((item, index) => (
+          <li key={index}>{renderInlineText(item)}</li>
+        ))}
+      </ul>,
+    );
+  };
+
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) {
+      flushList();
+      continue;
+    }
+
+    const bullet = line.match(/^[-*]\s+(.*)$/);
+    const numbered = line.match(/^\d+\.\s+(.*)$/);
+    if (bullet || numbered) {
+      listItems.push((bullet?.[1] ?? numbered?.[1] ?? "").trim());
+      continue;
+    }
+
+    flushList();
+    const heading = line.match(/^(#{1,4})\s+(.*)$/);
+    if (heading) {
+      elements.push(
+        <p key={`heading-${elements.length}`} className="mb-1 mt-2 font-semibold text-foreground">
+          {renderInlineText(heading[2])}
+        </p>,
+      );
+      continue;
+    }
+
+    elements.push(
+      <p key={`paragraph-${elements.length}`} className="my-1">
+        {renderInlineText(line)}
+      </p>,
+    );
+  }
+
+  flushList();
+  return <div>{elements}</div>;
+}
+
+function renderInlineText(text: string) {
+  return text.split(/(\*\*[^*]+\*\*)/g).filter(Boolean).map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={index} className="font-semibold text-foreground">{part.slice(2, -2)}</strong>;
+    }
+    return <span key={index}>{part}</span>;
+  });
 }
