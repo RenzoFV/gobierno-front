@@ -1,6 +1,6 @@
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Bot, Cpu, RefreshCw } from "lucide-react";
+import { ArrowLeft, Bot, Cpu, RefreshCw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { getActivos, getProcesos } from "../api/activos";
 import { analizarIA, analizarRegla, getCambio, getComparacion } from "../api/cambios";
@@ -11,11 +11,14 @@ import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
+import { useAuth } from "../context/AuthContext";
 import { formatDate, userMessage } from "../lib/utils";
 
 export default function CambioDetallePage() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
+  const { usuario } = useAuth();
+  const puedeAnalizar = usuario?.rol === "admin" || usuario?.rol === "analista";
 
   const { data: cambio, isLoading } = useQuery({
     queryKey: ["cambio", id],
@@ -25,10 +28,10 @@ export default function CambioDetallePage() {
   const { data: comparacion } = useQuery({
     queryKey: ["comparacion", id],
     queryFn: () => getComparacion(id!),
-    enabled: !!id,
+    enabled: !!id && puedeAnalizar,
   });
-  const { data: activos = [] } = useQuery({ queryKey: ["activos"], queryFn: getActivos });
-  const { data: procesos = [] } = useQuery({ queryKey: ["procesos"], queryFn: getProcesos });
+  const { data: activos = [] } = useQuery({ queryKey: ["activos"], queryFn: getActivos, enabled: puedeAnalizar });
+  const { data: procesos = [] } = useQuery({ queryKey: ["procesos"], queryFn: getProcesos, enabled: puedeAnalizar });
 
   const invalida = () => {
     queryClient.invalidateQueries({ queryKey: ["cambio", id] });
@@ -88,40 +91,61 @@ export default function CambioDetallePage() {
             </div>
             <h2 className="text-2xl font-bold text-slate-950">{cambio?.titulo}</h2>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">{cambio?.descripcion || "Sin descripcion registrada."}</p>
-            <p className="mt-4 text-sm text-slate-500">Creado: {formatDate(cambio?.fecha_creacion)}</p>
+            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500">
+              <p>Creado: {formatDate(cambio?.fecha_creacion)}</p>
+              <p>Solicitante: {cambio?.creado_por_nombre || cambio?.creado_por_email || cambio?.creado_por || "No registrado"}</p>
+            </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:w-80 lg:grid-cols-1">
-            <Button loading={regla.isPending} onClick={() => regla.mutate()}>
-              <Cpu className="h-4 w-4" />
-              Analizar con regla
-            </Button>
-            <Button variant="secondary" loading={ia.isPending} onClick={() => ia.mutate()}>
-              <Bot className="h-4 w-4" />
-              Analizar con IA
-            </Button>
-          </div>
+          {puedeAnalizar && (
+            <div className="grid gap-3 sm:grid-cols-2 lg:w-80 lg:grid-cols-1">
+              <Button loading={regla.isPending} onClick={() => regla.mutate()}>
+                <Cpu className="h-4 w-4" />
+                Analizar con regla
+              </Button>
+              <Button variant="secondary" loading={ia.isPending} onClick={() => ia.mutate()}>
+                <Bot className="h-4 w-4" />
+                Analizar con IA
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-4">
-          <CardTitle>Comparacion de resultados</CardTitle>
-          <Button variant="outline" size="sm" onClick={invalida}>
-            <RefreshCw className="h-4 w-4" />
-            Actualizar
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <ComparacionMetodos
-            regla={comparacion?.regla ?? null}
-            ia={comparacion?.ia ?? null}
-            coincidencia={comparacion?.coincidencia_activos}
-            activos={activos}
-            procesos={procesos}
-          />
-        </CardContent>
-      </Card>
+      {puedeAnalizar ? (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-4">
+            <CardTitle>Comparacion de resultados</CardTitle>
+            <Button variant="outline" size="sm" onClick={invalida}>
+              <RefreshCw className="h-4 w-4" />
+              Actualizar
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <ComparacionMetodos
+              regla={comparacion?.regla ?? null}
+              ia={comparacion?.ia ?? null}
+              coincidencia={comparacion?.coincidencia_activos}
+              activos={activos}
+              procesos={procesos}
+            />
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sky-100 text-sky-700">
+              <ShieldCheck className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-slate-950">Solicitud registrada</h3>
+              <p className="mt-1 text-sm leading-6 text-slate-500">
+                Tu rol permite registrar y consultar tus solicitudes. El analisis de impacto y la comparacion tecnica son realizados por un analista o administrador.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

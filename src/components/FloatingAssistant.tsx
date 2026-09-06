@@ -11,7 +11,11 @@ interface Mensaje {
   texto: string;
 }
 
-export default function FloatingAssistant() {
+interface FloatingAssistantProps {
+  placement?: "floating" | "nav";
+}
+
+export default function FloatingAssistant({ placement = "floating" }: FloatingAssistantProps) {
   const [open, setOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const [mensajes, setMensajes] = useState<Mensaje[]>([]);
@@ -41,10 +45,17 @@ export default function FloatingAssistant() {
     toast.success("Conversacion del asistente limpiada.");
   };
 
+  const isNav = placement === "nav";
+
   return (
-    <div className="fixed bottom-5 right-5 z-40 flex flex-col items-end gap-3">
+    <div className={cn(isNav ? "inline-flex" : "fixed bottom-5 right-5 z-40 flex flex-col items-end gap-3")}>
       {open && !minimized && (
-        <section className="flex h-[min(620px,calc(100vh-7rem))] w-[calc(100vw-2.5rem)] max-w-md animate-slide-up flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl">
+        <section
+          className={cn(
+            "flex h-[min(620px,calc(100vh-7rem))] w-[calc(100vw-2.5rem)] max-w-md animate-slide-up flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl",
+            isNav && "fixed right-4 top-20 z-50",
+          )}
+        >
           <header className="flex items-center justify-between border-b border-slate-100 bg-slate-950 px-4 py-3 text-white">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-md bg-sky-400 text-slate-950">
@@ -111,15 +122,22 @@ export default function FloatingAssistant() {
       )}
 
       <Button
-        className="h-14 rounded-full px-5 shadow-xl shadow-sky-200 transition duration-200 hover:-translate-y-0.5 max-sm:h-12 max-sm:w-12 max-sm:px-0"
+        size="icon"
+        variant={isNav ? "outline" : "primary"}
+        className={cn(
+          "rounded-full transition duration-200",
+          isNav
+            ? "h-10 w-10 border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-sky-50 hover:text-sky-700"
+            : "h-14 w-14 shadow-xl shadow-sky-200 hover:-translate-y-0.5 max-sm:h-12 max-sm:w-12",
+        )}
         onClick={() => {
           setOpen(true);
           setMinimized(false);
         }}
         aria-label="Asistente"
+        title="Asistente"
       >
         <MessageCircle className="h-5 w-5" />
-        <span className="max-sm:hidden">Asistente</span>
       </Button>
     </div>
   );

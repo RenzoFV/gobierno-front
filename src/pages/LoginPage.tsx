@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, LockKeyhole, Mail, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
+import { defaultPathForRole } from "../components/ProtectedRoute";
 import { userMessage } from "../lib/utils";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
@@ -12,6 +13,7 @@ import { Input, Label } from "../components/ui/form";
 const demoUsers = [
   { label: "Admin", email: "admin@demo.com", password: "Admin123!" },
   { label: "Analista", email: "analista@demo.com", password: "Analista123!" },
+  { label: "Solicitante", email: "solicitante@demo.com", password: "Solicitante123!" },
 ];
 
 export default function LoginPage() {
@@ -26,9 +28,9 @@ export default function LoginPage() {
     event.preventDefault();
     setCargando(true);
     try {
-      await login(email, password);
+      const usuario = await login(email, password);
       toast.success("Bienvenido. Sesion iniciada correctamente.");
-      navigate("/dashboard", { replace: true });
+      navigate(defaultPathForRole(usuario.rol), { replace: true });
     } catch (error) {
       toast.error(userMessage(error, "Credenciales invalidas. Revisa tu correo y contrasena."));
     } finally {
@@ -125,7 +127,7 @@ export default function LoginPage() {
 
             <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-3">
               <p className="mb-2 text-xs font-semibold uppercase text-slate-500">Acceso demo</p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid gap-2 sm:grid-cols-3">
                 {demoUsers.map((demo) => (
                   <Button key={demo.email} type="button" variant="outline" size="sm" onClick={() => fillDemo(demo)}>
                     {demo.label}

@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Activity, AlertTriangle, Layers, TrendingUp } from "lucide-react";
 import { getHistorial, getResumen } from "../api/dashboard";
@@ -6,6 +7,7 @@ import LoadingState from "../components/LoadingState";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
 import { Badge } from "../components/ui/badge";
+import TablePagination from "../components/TablePagination";
 import { formatDate } from "../lib/utils";
 
 interface Resumen {
@@ -24,9 +26,23 @@ interface HistorialItem {
   nivel_riesgo_ia: string | null;
 }
 
+const PAGE_SIZE = 8;
+
 export default function DashboardPage() {
   const { data: resumen, isLoading } = useQuery<Resumen>({ queryKey: ["resumen"], queryFn: getResumen });
   const { data: historial, isLoading: cargandoHistorial } = useQuery<HistorialItem[]>({ queryKey: ["historial"], queryFn: getHistorial });
+  const [historialPage, setHistorialPage] = useState(1);
+
+  useEffect(() => {
+    setHistorialPage(1);
+  }, [historial?.length]);
+
+  const totalHistorialPages = Math.max(1, Math.ceil((historial?.length ?? 0) / PAGE_SIZE));
+  const currentHistorialPage = Math.min(historialPage, totalHistorialPages);
+  const historialPaginado = useMemo(
+    () => (historial ?? []).slice((currentHistorialPage - 1) * PAGE_SIZE, currentHistorialPage * PAGE_SIZE),
+    [currentHistorialPage, historial],
+  );
 
   const stats = [
     {
@@ -154,7 +170,7 @@ export default function DashboardPage() {
                   <td colSpan={5} className="px-4 py-8 text-center text-slate-400">Cargando historial...</td>
                 </tr>
               )}
-              {historial?.map((item) => (
+              {historialPaginado.map((item) => (
                 <tr key={item.cambio_id} className="animate-fade bg-white">
                   <td className="table-cell font-semibold text-slate-800">{item.titulo}</td>
                   <td className="table-cell text-slate-500">{formatDate(item.fecha)}</td>
@@ -173,6 +189,15 @@ export default function DashboardPage() {
             </tbody>
           </table>
         </div>
+        {!cargandoHistorial && (historial?.length ?? 0) > 0 && (
+          <TablePagination
+            page={currentHistorialPage}
+            pageSize={PAGE_SIZE}
+            totalItems={historial?.length ?? 0}
+            itemLabel="analisis"
+            onPageChange={setHistorialPage}
+          />
+        )}
       </Card>
     </div>
   );

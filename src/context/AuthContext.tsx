@@ -2,17 +2,19 @@ import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
 import client from "../api/client";
 
-interface Usuario {
+export type Rol = "admin" | "analista" | "solicitante";
+
+export interface Usuario {
   id: string;
   nombre: string;
   email: string;
-  rol: string;
+  rol: Rol;
 }
 
 interface AuthContextType {
   usuario: Usuario | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<Usuario>;
   logout: () => void;
 }
 
@@ -33,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("usuario", JSON.stringify(data.usuario));
     setToken(data.token);
     setUsuario(data.usuario);
+    return data.usuario;
   };
 
   const logout = () => {

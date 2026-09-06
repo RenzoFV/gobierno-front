@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
-  BarChart3,
   Boxes,
   Bot,
   ChevronLeft,
@@ -11,10 +10,11 @@ import {
   LogOut,
   Menu,
   Network,
+  UserCircle,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useAuth } from "../context/AuthContext";
+import { useAuth, type Rol } from "../context/AuthContext";
 import { cn } from "../lib/utils";
 import { Button } from "./ui/button";
 import {
@@ -28,21 +28,24 @@ import {
 import { Tooltip } from "./ui/tooltip";
 import FloatingAssistant from "./FloatingAssistant";
 
-const navigation = [
+const navigation: {
+  label: string;
+  items: { label: string; to: string; icon: typeof LayoutDashboard; roles: Rol[] }[];
+}[] = [
   {
     label: "Resumen",
-    items: [{ label: "Dashboard", to: "/dashboard", icon: LayoutDashboard }],
+    items: [{ label: "Dashboard", to: "/dashboard", icon: LayoutDashboard, roles: ["admin", "analista"] }],
   },
   {
     label: "Gestion",
     items: [
-      { label: "Inventario", to: "/inventario", icon: Boxes },
-      { label: "Cambios", to: "/cambios", icon: GitBranch },
+      { label: "Inventario", to: "/inventario", icon: Boxes, roles: ["admin", "analista"] },
+      { label: "Cambios", to: "/cambios", icon: GitBranch, roles: ["admin", "analista", "solicitante"] },
     ],
   },
   {
     label: "Analisis",
-    items: [{ label: "Grafo", to: "/grafo", icon: Network }],
+    items: [{ label: "Grafo", to: "/grafo", icon: Network, roles: ["admin", "analista"] }],
   },
 ];
 
@@ -72,6 +75,7 @@ export default function AppShell() {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("sidebar-collapsed") === "true");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const puedeUsarAsistente = usuario?.rol === "admin" || usuario?.rol === "analista";
 
   useEffect(() => {
     localStorage.setItem("sidebar-collapsed", String(collapsed));
@@ -83,10 +87,16 @@ export default function AppShell() {
 
   const page = useMemo(() => {
     if (location.pathname.startsWith("/cambios/")) {
+      if (usuario?.rol === "solicitante") {
+        return { title: "Detalle de solicitud", description: "Seguimiento de la solicitud registrada." };
+      }
       return { title: "Detalle del cambio", description: "Evaluacion por reglas, IA y comparacion de resultados." };
     }
+    if (location.pathname === "/cambios" && usuario?.rol === "solicitante") {
+      return { title: "Mis solicitudes", description: "Registro y seguimiento de solicitudes de cambio." };
+    }
     return titles[location.pathname] ?? titles["/dashboard"];
-  }, [location.pathname]);
+  }, [location.pathname, usuario?.rol]);
 
   const confirm = () => {
     logout();
@@ -134,14 +144,17 @@ export default function AppShell() {
                 <p className="hidden truncate text-sm text-slate-500 sm:block">{page.description}</p>
               </div>
             </div>
-            <div className="hidden items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm sm:flex">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-100 text-sky-700">
-                <BarChart3 className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="font-semibold leading-tight">{usuario?.nombre ?? "Usuario"}</p>
-                <p className="text-xs capitalize text-slate-500">{usuario?.rol ?? "rol"}</p>
-              </div>
+            <div className="flex items-center gap-2">
+              {puedeUsarAsistente && (
+                <Tooltip label="Asistente" side="bottom">
+                  <FloatingAssistant placement="nav" />
+                </Tooltip>
+              )}
+              <Tooltip label={usuario?.nombre ?? "Usuario"} side="bottom">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm" aria-label={usuario?.nombre ?? "Usuario"}>
+                  <UserCircle className="h-5 w-5" />
+                </div>
+              </Tooltip>
             </div>
           </div>
         </header>
@@ -150,8 +163,6 @@ export default function AppShell() {
           <Outlet />
         </main>
       </div>
-
-      <FloatingAssistant />
 
       <Dialog open={confirmLogout} onOpenChange={setConfirmLogout}>
         <DialogContent>
@@ -174,6 +185,15 @@ export default function AppShell() {
   );
 }
 
+function visibleNavigation(rol?: Rol | string | null) {
+  return navigation
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => !item.roles || (rol && item.roles.includes(rol as Rol))),
+    }))
+    .filter((group) => group.items.length > 0);
+}
+
 function SidebarContent({
   collapsed,
   usuario,
@@ -185,6 +205,8 @@ function SidebarContent({
   onLogout: () => void;
   onToggle?: () => void;
 }) {
+  const itemsVisibles = visibleNavigation(usuario?.rol);
+
   return (
     <>
       <div className={cn("flex h-20 items-center gap-3 border-b border-slate-100", collapsed ? "px-3" : "px-5")}>
@@ -216,7 +238,7 @@ function SidebarContent({
       </div>
 
       <nav className="flex-1 space-y-6 px-3 py-5">
-        {navigation.map((group) => (
+        {itemsVisibles.map((group) => (
           <div key={group.label}>
             {!collapsed && <p className="mb-2 px-3 text-xs font-semibold uppercase text-slate-400">{group.label}</p>}
             <div className="space-y-1">

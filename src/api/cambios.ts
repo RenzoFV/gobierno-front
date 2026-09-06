@@ -9,6 +9,8 @@ export interface Cambio {
   fecha_creacion: string;
   estado: string;
   creado_por: string;
+  creado_por_nombre?: string;
+  creado_por_email?: string;
 }
 
 export interface Evaluacion {
@@ -27,8 +29,12 @@ export interface Evaluacion {
 export const crearCambio = (data: { titulo: string; descripcion: string; activo_objetivo_id: string }) =>
   client.post<Cambio>("/cambios", data).then((r) => r.data);
 
-export const getCambios = () =>
-  client.get<Cambio[]>("/cambios").then((r) => r.data);
+export const getCambios = (params?: { solicitanteId?: string }) =>
+  client
+    .get<Cambio[]>("/cambios", {
+      params: params?.solicitanteId ? { solicitante_id: params.solicitanteId } : undefined,
+    })
+    .then((r) => r.data);
 
 export const getCambio = (id: string) =>
   client.get(`/cambios/${id}`).then((r) => r.data);

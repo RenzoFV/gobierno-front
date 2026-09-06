@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Boxes, BriefcaseBusiness, Plus, Trash2 } from "lucide-react";
@@ -16,6 +16,7 @@ import { cn, userMessage } from "../lib/utils";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
+import TablePagination from "../components/TablePagination";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,7 @@ import { Input, Label, Select, Textarea } from "../components/ui/form";
 import { Skeleton } from "../components/ui/skeleton";
 
 const tipos = ["Servidor", "Aplicacion", "BaseDeDatos", "API", "Microservicio", "ServicioCloud"];
+const PAGE_SIZE = 8;
 
 export default function InventarioPage() {
   const { usuario } = useAuth();
@@ -42,8 +44,25 @@ export default function InventarioPage() {
   const [activoDialog, setActivoDialog] = useState(false);
   const [procesoDialog, setProcesoDialog] = useState(false);
   const [activoAEliminar, setActivoAEliminar] = useState<Activo | null>(null);
+  const [activosPage, setActivosPage] = useState(1);
+  const [procesosPage, setProcesosPage] = useState(1);
   const [form, setForm] = useState({ nombre: "", tipo: tipos[0], criticidad_base: 3, descripcion: "" });
   const [procForm, setProcForm] = useState({ nombre: "", area: "", criticidad_negocio: 3 });
+
+  useEffect(() => {
+    setActivosPage(1);
+  }, [activos?.length]);
+
+  useEffect(() => {
+    setProcesosPage(1);
+  }, [procesos?.length]);
+
+  const totalActivosPages = Math.max(1, Math.ceil((activos?.length ?? 0) / PAGE_SIZE));
+  const currentActivosPage = Math.min(activosPage, totalActivosPages);
+  const activosPaginados = (activos ?? []).slice((currentActivosPage - 1) * PAGE_SIZE, currentActivosPage * PAGE_SIZE);
+  const totalProcesosPages = Math.max(1, Math.ceil((procesos?.length ?? 0) / PAGE_SIZE));
+  const currentProcesosPage = Math.min(procesosPage, totalProcesosPages);
+  const procesosPaginados = (procesos ?? []).slice((currentProcesosPage - 1) * PAGE_SIZE, currentProcesosPage * PAGE_SIZE);
 
   const metricas = useMemo(
     () => [
@@ -197,6 +216,7 @@ export default function InventarioPage() {
         </div>
 
         {tab === "activos" ? (
+          <>
           <div className="overflow-x-auto">
             <table className="table-base">
               <thead className="table-head">
@@ -210,7 +230,7 @@ export default function InventarioPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {isLoading && <LoadingRows colSpan={esAdmin ? 5 : 4} />}
-                {activos?.map((activo) => (
+                {activosPaginados.map((activo) => (
                   <tr key={activo.id} className="animate-fade">
                     <td className="table-cell font-semibold text-slate-800">{activo.nombre}</td>
                     <td className="table-cell"><Badge variant="sky">{activo.tipo}</Badge></td>
@@ -229,7 +249,18 @@ export default function InventarioPage() {
               </tbody>
             </table>
           </div>
+          {!isLoading && (activos?.length ?? 0) > 0 && (
+            <TablePagination
+              page={currentActivosPage}
+              pageSize={PAGE_SIZE}
+              totalItems={activos?.length ?? 0}
+              itemLabel="activos"
+              onPageChange={setActivosPage}
+            />
+          )}
+          </>
         ) : (
+          <>
           <div className="overflow-x-auto">
             <table className="table-base">
               <thead className="table-head">
@@ -241,7 +272,7 @@ export default function InventarioPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {cargandoProcesos && <LoadingRows colSpan={3} />}
-                {procesos?.map((proceso) => (
+                {procesosPaginados.map((proceso) => (
                   <tr key={proceso.id} className="animate-fade">
                     <td className="table-cell font-semibold text-slate-800">{proceso.nombre}</td>
                     <td className="table-cell text-slate-600">{proceso.area}</td>
@@ -252,6 +283,16 @@ export default function InventarioPage() {
               </tbody>
             </table>
           </div>
+          {!cargandoProcesos && (procesos?.length ?? 0) > 0 && (
+            <TablePagination
+              page={currentProcesosPage}
+              pageSize={PAGE_SIZE}
+              totalItems={procesos?.length ?? 0}
+              itemLabel="procesos"
+              onPageChange={setProcesosPage}
+            />
+          )}
+          </>
         )}
       </Card>
 
