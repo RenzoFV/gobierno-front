@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Boxes, BriefcaseBusiness, Plus, Trash2 } from "lucide-react";
+import { Boxes, BriefcaseBusiness, GitBranch, Plus, Save, Settings2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
+  addDependencia,
+  asociarProceso,
   createActivo,
   createProceso,
   deleteActivo,
+  getActivo,
   getActivos,
   getProcesos,
+  removeDependencia,
+  updateActivo,
   type Activo,
 } from "../api/activos";
 import { useAuth } from "../context/AuthContext";
@@ -46,10 +51,20 @@ export default function InventarioPage() {
   const [activoDialog, setActivoDialog] = useState(false);
   const [procesoDialog, setProcesoDialog] = useState(false);
   const [activoAEliminar, setActivoAEliminar] = useState<Activo | null>(null);
+  const [activoSeleccionado, setActivoSeleccionado] = useState<Activo | null>(null);
   const [activosPage, setActivosPage] = useState(1);
   const [procesosPage, setProcesosPage] = useState(1);
   const [form, setForm] = useState({ nombre: "", tipo: tipos[0], criticidad_base: 3, descripcion: "" });
   const [procForm, setProcForm] = useState({ nombre: "", area: "", criticidad_negocio: 3 });
+  const [depForm, setDepForm] = useState({ depende_de_id: "", peso: 0.8 });
+  const [procesoAsociarId, setProcesoAsociarId] = useState("");
+  const [criticidadEdit, setCriticidadEdit] = useState(3);
+
+  const { data: detalleActivo, isLoading: cargandoDetalle } = useQuery({
+    queryKey: ["activo", activoSeleccionado?.id],
+    queryFn: () => getActivo(activoSeleccionado!.id),
+    enabled: !!activoSeleccionado,
+  });
 
   useEffect(() => {
     setActivosPage(1);
@@ -58,6 +73,12 @@ export default function InventarioPage() {
   useEffect(() => {
     setProcesosPage(1);
   }, [procesos?.length]);
+
+  useEffect(() => {
+    if (detalleActivo) {
+      setCriticidadEdit(detalleActivo.criticidad_base);
+    }
+  }, [detalleActivo]);
 
   const totalActivosPages = Math.max(1, Math.ceil((activos?.length ?? 0) / PAGE_SIZE));
   const currentActivosPage = Math.min(activosPage, totalActivosPages);
@@ -82,10 +103,12 @@ export default function InventarioPage() {
 
   const crearActivoMutation = useMutation({
     mutationFn: createActivo,
-    onSuccess: () => {
+    onSuccess: (activo) => {
       queryClient.invalidateQueries({ queryKey: ["activos"] });
+      queryClient.invalidateQueries({ queryKey: ["grafo"] });
       setForm({ nombre: "", tipo: tipos[0], criticidad_base: 3, descripcion: "" });
       setActivoDialog(false);
+      setActivoSeleccionado(activo);
       toast.success("Activo creado correctamente.");
     },
     onError: (error) => toast.error(userMessage(error, "No se pudo crear el activo.")),
@@ -95,6 +118,7 @@ export default function InventarioPage() {
     mutationFn: deleteActivo,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["activos"] });
+      queryClient.invalidateQueries({ queryKey: ["grafo"] });
       setActivoAEliminar(null);
       toast.success("Activo eliminado correctamente.");
     },
@@ -105,11 +129,57 @@ export default function InventarioPage() {
     mutationFn: createProceso,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["procesos"] });
+      queryClient.invalidateQueries({ queryKey: ["grafo"] });
       setProcForm({ nombre: "", area: "", criticidad_negocio: 3 });
       setProcesoDialog(false);
       toast.success("Proceso de negocio creado correctamente.");
     },
     onError: (error) => toast.error(userMessage(error, "No se pudo crear el proceso.")),
+  });
+
+  const invalidaActivo = (id?: string) => {
+    queryClient.invalidateQueries({ queryKey: ["activos"] });
+    queryClient.invalidateQueries({ queryKey: ["procesos"] });
+    queryClient.invalidateQueries({ queryKey: ["grafo"] });
+    if (id) queryClient.invalidateQueries({ queryKey: ["activo", id] });
+  };
+
+  const agregarDependenciaMutation = useMutation({
+    mutationFn: ({ id, depende_de_id, peso }: { id: string; depende_de_id: string; peso: number }) => addDependencia(id, depende_de_id, peso),
+    onSuccess: (_, vars) => {
+      invalidaActivo(vars.id);
+      setDepForm({ depende_de_id: "", peso: 0.8 });
+      toast.success("Dependencia registrada.");
+    },
+    onError: (error) => toast.error(userMessage(error, "No se pudo registrar la dependencia.")),
+  });
+
+  const quitarDependenciaMutation = useMutation({
+    mutationFn: ({ id, dependenciaId }: { id: string; dependenciaId: string }) => removeDependencia(id, dependenciaId),
+    onSuccess: (_, vars) => {
+      invalidaActivo(vars.id);
+      toast.success("Dependencia eliminada.");
+    },
+    onError: (error) => toast.error(userMessage(error, "No se pudo eliminar la dependencia.")),
+  });
+
+  const asociarProcesoMutation = useMutation({
+    mutationFn: ({ id, procesoId }: { id: string; procesoId: string }) => asociarProceso(id, procesoId),
+    onSuccess: (_, vars) => {
+      invalidaActivo(vars.id);
+      setProcesoAsociarId("");
+      toast.success("Proceso asociado.");
+    },
+    onError: (error) => toast.error(userMessage(error, "No se pudo asociar el proceso.")),
+  });
+
+  const actualizarCriticidadMutation = useMutation({
+    mutationFn: ({ id, criticidad_base }: { id: string; criticidad_base: number }) => updateActivo(id, { criticidad_base }),
+    onSuccess: (_, vars) => {
+      invalidaActivo(vars.id);
+      toast.success("Criticidad actualizada.");
+    },
+    onError: (error) => toast.error(userMessage(error, "No se pudo actualizar la criticidad.")),
   });
 
   return (
@@ -232,6 +302,9 @@ export default function InventarioPage() {
                     <TableCell className="max-w-md truncate text-muted-foreground">{activo.descripcion || "Sin descripcion"}</TableCell>
                     {esAdmin && (
                       <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => setActivoSeleccionado(activo)} aria-label={`Gestionar ${activo.nombre}`}>
+                          <Settings2 className="h-4 w-4" />
+                        </Button>
                         <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setActivoAEliminar(activo)} aria-label={`Eliminar ${activo.nombre}`}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -304,6 +377,134 @@ export default function InventarioPage() {
               <Trash2 className="h-4 w-4" />
               Eliminar
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!activoSeleccionado} onOpenChange={(open) => !open && setActivoSeleccionado(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Gestionar activo</DialogTitle>
+            <DialogDescription>
+              Configura criticidad, dependencias y procesos soportados para mantener el grafo trazable.
+            </DialogDescription>
+          </DialogHeader>
+
+          {cargandoDetalle || !detalleActivo ? (
+            <div className="p-5">
+              <Skeleton className="h-32 w-full" />
+            </div>
+          ) : (
+            <div className="max-h-[70vh] space-y-5 overflow-y-auto p-5">
+              <div className="grid gap-3 rounded-lg border bg-muted/40 p-4 md:grid-cols-[1fr_auto] md:items-end">
+                <div>
+                  <p className="font-semibold text-foreground">{detalleActivo.nombre}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{detalleActivo.tipo} - {detalleActivo.descripcion || "Sin descripcion"}</p>
+                </div>
+                <div className="flex items-end gap-2">
+                  <Field label="Criticidad">
+                    <Input type="number" min={1} max={5} value={criticidadEdit} onChange={(event) => setCriticidadEdit(Number(event.target.value))} />
+                  </Field>
+                  <Button
+                    size="icon"
+                    loading={actualizarCriticidadMutation.isPending}
+                    onClick={() => actualizarCriticidadMutation.mutate({ id: detalleActivo.id, criticidad_base: criticidadEdit })}
+                    aria-label="Guardar criticidad"
+                  >
+                    <Save className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <section className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <GitBranch className="h-4 w-4 text-secondary" />
+                  <h3 className="font-semibold text-foreground">Dependencias</h3>
+                </div>
+                <div className="grid gap-3 md:grid-cols-[1fr_120px_auto] md:items-end">
+                  <Field label="Depende de">
+                    <Select value={depForm.depende_de_id} onChange={(event) => setDepForm({ ...depForm, depende_de_id: event.target.value })}>
+                      <option value="">Seleccionar activo</option>
+                      {(activos ?? []).filter((activo) => activo.id !== detalleActivo.id).map((activo) => (
+                        <option key={activo.id} value={activo.id}>{activo.nombre}</option>
+                      ))}
+                    </Select>
+                  </Field>
+                  <Field label="Peso">
+                    <Input type="number" min={0} max={1} step={0.1} value={depForm.peso} onChange={(event) => setDepForm({ ...depForm, peso: Number(event.target.value) })} />
+                  </Field>
+                  <Button
+                    disabled={!depForm.depende_de_id}
+                    loading={agregarDependenciaMutation.isPending}
+                    onClick={() => agregarDependenciaMutation.mutate({ id: detalleActivo.id, depende_de_id: depForm.depende_de_id, peso: depForm.peso })}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Añadir
+                  </Button>
+                </div>
+                <div className="rounded-lg border">
+                  {detalleActivo.dependencias.length ? (
+                    <ul className="divide-y">
+                      {detalleActivo.dependencias.map((dep) => (
+                        <li key={dep.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                          <div>
+                            <p className="font-medium text-foreground">{dep.nombre}</p>
+                            <p className="text-xs text-muted-foreground">Peso {dep.peso}</p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            loading={quitarDependenciaMutation.isPending}
+                            onClick={() => quitarDependenciaMutation.mutate({ id: detalleActivo.id, dependenciaId: dep.id })}
+                            aria-label={`Quitar dependencia ${dep.nombre}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="px-3 py-6 text-center text-sm text-muted-foreground">Sin dependencias registradas.</p>
+                  )}
+                </div>
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="font-semibold text-foreground">Procesos soportados</h3>
+                <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+                  <Field label="Proceso">
+                    <Select value={procesoAsociarId} onChange={(event) => setProcesoAsociarId(event.target.value)}>
+                      <option value="">Seleccionar proceso</option>
+                      {(procesos ?? []).map((proceso) => (
+                        <option key={proceso.id} value={proceso.id}>{proceso.nombre}</option>
+                      ))}
+                    </Select>
+                  </Field>
+                  <Button
+                    disabled={!procesoAsociarId}
+                    loading={asociarProcesoMutation.isPending}
+                    onClick={() => asociarProcesoMutation.mutate({ id: detalleActivo.id, procesoId: procesoAsociarId })}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Asociar
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {detalleActivo.procesos_soportados.length ? (
+                    detalleActivo.procesos_soportados.map((proceso) => (
+                      <Badge key={proceso.id} variant="violet">{proceso.nombre} / {proceso.criticidad_negocio}</Badge>
+                    ))
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Sin procesos asociados.</span>
+                  )}
+                </div>
+              </section>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setActivoSeleccionado(null)}>Cerrar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

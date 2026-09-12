@@ -1,24 +1,14 @@
 import type { ReactNode } from "react";
 import { Bot, CheckCircle2, ChevronDown, Cpu, Timer } from "lucide-react";
 import type { Activo, ProcesoNegocio } from "../api/activos";
+import type { DetalleActivoEvaluacion, Evaluacion } from "../api/cambios";
 import RiesgoBadge from "./RiesgoBadge";
 import { Badge } from "./ui/badge";
 import { Card } from "./ui/card";
 
-interface EvaluacionData {
-  metodo: string;
-  nivel_riesgo: string;
-  score_riesgo: number;
-  activos_afectados: string[];
-  procesos_afectados: string[];
-  recomendaciones: string[];
-  tiempo_analisis_ms: number;
-  respuesta_texto?: string;
-}
-
 interface ComparacionMetodosProps {
-  regla: EvaluacionData | null;
-  ia: EvaluacionData | null;
+  regla: Evaluacion | null;
+  ia: Evaluacion | null;
   coincidencia?: number;
   activos?: Activo[];
   procesos?: ProcesoNegocio[];
@@ -90,7 +80,7 @@ function AnalysisCard({
 }: {
   title: string;
   icon: ReactNode;
-  data: EvaluacionData | null;
+  data: Evaluacion | null;
   empty: string;
   activosById: Map<string, Activo>;
   procesosById: Map<string, ProcesoNegocio>;
@@ -119,6 +109,14 @@ function AnalysisCard({
             <Timer className="h-4 w-4" />
             {data.tiempo_analisis_ms} ms
           </div>
+          {calculaRiesgo && (
+            <MotorMetadata
+              version={data.version_motor}
+              parametros={data.parametros_usados}
+              caminoCritico={data.camino_critico}
+              activosById={activosById}
+            />
+          )}
           <div className="space-y-2">
             <DisclosureList
               title={calculaRiesgo ? "Activos afectados" : "Activos recuperados"}
@@ -149,6 +147,9 @@ function AnalysisCard({
               </ul>
             </div>
           )}
+          {calculaRiesgo && (data.detalle_activos?.length ?? 0) > 0 && (
+            <TraceabilityTable detalles={data.detalle_activos ?? []} mejorActivo={data.mejor_activo} />
+          )}
           {data.respuesta_texto && (
             <div className="max-h-80 overflow-y-auto rounded-lg border bg-white p-4 text-sm leading-6 text-foreground">
               <FormattedAiResponse text={data.respuesta_texto} />
@@ -159,6 +160,87 @@ function AnalysisCard({
         <p className="rounded-lg border border-dashed bg-muted/60 px-4 py-8 text-center text-sm text-muted-foreground">{empty}</p>
       )}
     </Card>
+  );
+}
+
+function MotorMetadata({
+  version,
+  parametros,
+  caminoCritico,
+  activosById,
+}: {
+  version?: string;
+  parametros?: Evaluacion["parametros_usados"];
+  caminoCritico?: string[];
+  activosById: Map<string, Activo>;
+}) {
+  const camino = (caminoCritico ?? [])
+    .map((id) => activosById.get(id)?.nombre ?? id)
+    .join(" -> ");
+
+  return (
+    <div className="rounded-lg border bg-white p-3">
+      <div className="flex flex-wrap gap-2">
+        {version && <Badge variant="slate">{version}</Badge>}
+        {parametros && (
+          <>
+            <Badge variant="sky">prof {parametros.profundidad_max}</Badge>
+            <Badge variant="sky">att {parametros.atenuacion}</Badge>
+            <Badge variant="sky">coef {parametros.coef_proceso}</Badge>
+            <Badge variant="amber">umbrales {parametros.umbral_medio}/{parametros.umbral_alto}</Badge>
+          </>
+        )}
+      </div>
+      {camino && (
+        <p className="mt-3 text-xs leading-5 text-muted-foreground">
+          Camino critico: <span className="font-medium text-foreground">{camino}</span>
+        </p>
+      )}
+    </div>
+  );
+}
+
+function TraceabilityTable({ detalles, mejorActivo }: { detalles: DetalleActivoEvaluacion[]; mejorActivo?: string | null }) {
+  const ordenados = [...detalles].sort((a, b) => b.score_total_activo - a.score_total_activo);
+
+  return (
+    <div>
+      <p className="mb-2 font-semibold text-foreground">Trazabilidad por activo</p>
+      <div className="max-h-80 overflow-auto rounded-lg border bg-white">
+        <table className="w-full min-w-[720px] text-left text-xs">
+          <thead className="sticky top-0 bg-muted text-secondary">
+            <tr>
+              <th className="px-3 py-2 font-semibold">Activo</th>
+              <th className="px-3 py-2 font-semibold">Dist.</th>
+              <th className="px-3 py-2 font-semibold">Peso</th>
+              <th className="px-3 py-2 font-semibold">Factor</th>
+              <th className="px-3 py-2 font-semibold">Base</th>
+              <th className="px-3 py-2 font-semibold">+Proceso</th>
+              <th className="px-3 py-2 font-semibold">Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ordenados.map((detalle) => {
+              const esCritico = detalle.activo_id === mejorActivo;
+              return (
+                <tr key={detalle.activo_id} className={esCritico ? "bg-destructive/5" : undefined}>
+                  <td className="px-3 py-2">
+                    <p className="font-medium text-foreground">{detalle.nombre}</p>
+                    <p className="mt-0.5 text-muted-foreground">{detalle.camino_nombres?.join(" -> ")}</p>
+                  </td>
+                  <td className="px-3 py-2">{detalle.distancia}</td>
+                  <td className="px-3 py-2">{detalle.peso_camino}</td>
+                  <td className="px-3 py-2">{detalle.factor_atenuacion}</td>
+                  <td className="px-3 py-2">{detalle.score_base}</td>
+                  <td className="px-3 py-2">{detalle.aporte_procesos}</td>
+                  <td className="px-3 py-2 font-semibold text-foreground">{detalle.score_total_activo}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 

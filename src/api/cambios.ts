@@ -23,7 +23,35 @@ export interface Evaluacion {
   recomendaciones: string[];
   tiempo_analisis_ms: number;
   respuesta_texto: string;
+  detalle_activos?: DetalleActivoEvaluacion[];
+  parametros_usados?: ParametrosRegla;
+  version_motor?: string;
+  mejor_activo?: string | null;
+  camino_critico?: string[];
   timestamp: string;
+}
+
+export interface ParametrosRegla {
+  profundidad_max: number;
+  atenuacion: number;
+  coef_proceso: number;
+  umbral_medio: number;
+  umbral_alto: number;
+}
+
+export interface DetalleActivoEvaluacion {
+  activo_id: string;
+  nombre: string;
+  camino_ids: string[];
+  camino_nombres: string[];
+  distancia: number;
+  peso_camino: number;
+  factor_atenuacion: number;
+  score_base: number;
+  aporte_procesos: number;
+  procesos_soportados: { id: string; nombre: string; criticidad: number }[];
+  score: number;
+  score_total_activo: number;
 }
 
 export const crearCambio = (data: { titulo: string; descripcion: string; activo_objetivo_id: string }) =>
@@ -39,8 +67,8 @@ export const getCambios = (params?: { solicitanteId?: string }) =>
 export const getCambio = (id: string) =>
   client.get(`/cambios/${id}`).then((r) => r.data);
 
-export const analizarRegla = (id: string) =>
-  client.post(`/cambios/${id}/analizar/regla`).then((r) => r.data);
+export const analizarRegla = (id: string, params?: ParametrosRegla) =>
+  client.post(`/cambios/${id}/analizar/regla`, params ?? {}).then((r) => r.data);
 
 export const analizarIA = (id: string, pregunta?: string) =>
   client.post(`/cambios/${id}/analizar/ia`, { pregunta }).then((r) => r.data);

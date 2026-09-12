@@ -20,6 +20,7 @@ interface GraphViewProps {
   dependencias: { origen: string; destino: string; peso: number }[];
   soporta: { activoId: string; procesoId: string }[];
   activosResaltados?: string[];
+  caminoCritico?: string[];
   onNodeClick?: (activoId: string) => void;
 }
 
@@ -29,6 +30,7 @@ export default function GraphView({
   dependencias,
   soporta,
   activosResaltados = [],
+  caminoCritico = [],
   onNodeClick,
 }: GraphViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -117,6 +119,20 @@ export default function GraphView({
             "border-width": 4,
           },
         },
+        {
+          selector: "edge.camino-critico",
+          style: {
+            width: 4,
+            "line-color": "#dc2626",
+            "target-arrow-color": "#dc2626",
+          },
+        },
+        {
+          selector: ".atenuado",
+          style: {
+            opacity: 0.25,
+          },
+        },
       ],
     });
 
@@ -134,21 +150,35 @@ export default function GraphView({
       cy.destroy();
       cyRef.current = null;
     };
-  }, [activos, procesos, dependencias, soporta]);
+  }, [activos, procesos, dependencias, soporta, onNodeClick]);
 
   useEffect(() => {
     const cy = cyRef.current;
     if (!cy) return;
     cy.batch(() => {
-      cy.nodes().removeClass("resaltado");
-      activosResaltados.forEach((id) => {
+      cy.elements().removeClass("resaltado camino-critico atenuado");
+      const resaltados = new Set([...activosResaltados, ...caminoCritico]);
+      if (resaltados.size > 0) {
+        cy.elements().addClass("atenuado");
+      }
+      resaltados.forEach((id) => {
         const node = cy.getElementById(id);
         if (node && node.length > 0) {
-          node.addClass("resaltado");
+          node.removeClass("atenuado").addClass("resaltado");
         }
       });
+      for (let index = 0; index < caminoCritico.length - 1; index += 1) {
+        const a = caminoCritico[index];
+        const b = caminoCritico[index + 1];
+        const edge = cy.getElementById(`dep-${a}-${b}`);
+        const reverseEdge = cy.getElementById(`dep-${b}-${a}`);
+        const selected = edge.length > 0 ? edge : reverseEdge;
+        if (selected.length > 0) {
+          selected.removeClass("atenuado").addClass("camino-critico");
+        }
+      }
     });
-  }, [activosResaltados]);
+  }, [activosResaltados, caminoCritico]);
 
   return <div ref={containerRef} className="w-full h-full" />;
 }

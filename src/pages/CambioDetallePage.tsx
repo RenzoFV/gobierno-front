@@ -1,9 +1,10 @@
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Bot, Cpu, RefreshCw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { getActivos, getProcesos } from "../api/activos";
-import { analizarIA, analizarRegla, getCambio, getComparacion } from "../api/cambios";
+import { analizarIA, analizarRegla, getCambio, getComparacion, type ParametrosRegla } from "../api/cambios";
 import ComparacionMetodos from "../components/ComparacionMetodos";
 import FloatingAssistant from "../components/FloatingAssistant";
 import LoadingState from "../components/LoadingState";
@@ -11,15 +12,50 @@ import RiesgoBadge from "../components/RiesgoBadge";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Input, Label } from "../components/ui/form";
 import { Skeleton } from "../components/ui/skeleton";
 import { useAuth } from "../context/AuthContext";
 import { formatDate, userMessage } from "../lib/utils";
+
+const DEFAULT_REGLA_PARAMS: ParametrosRegla = {
+  profundidad_max: 3,
+  atenuacion: 0.7,
+  coef_proceso: 0.5,
+  umbral_medio: 2.0,
+  umbral_alto: 3.5,
+};
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function safeNumber(value: number, fallback: number) {
+  return Number.isFinite(value) ? value : fallback;
+}
+
+function sanitizeReglaParams(params: ParametrosRegla): ParametrosRegla {
+  const profundidad_max = Math.round(clamp(safeNumber(params.profundidad_max, DEFAULT_REGLA_PARAMS.profundidad_max), 1, 3));
+  const atenuacion = clamp(safeNumber(params.atenuacion, DEFAULT_REGLA_PARAMS.atenuacion), 0, 1);
+  const coef_proceso = clamp(safeNumber(params.coef_proceso, DEFAULT_REGLA_PARAMS.coef_proceso), 0, 2);
+  let umbral_medio = clamp(safeNumber(params.umbral_medio, DEFAULT_REGLA_PARAMS.umbral_medio), 0, 10);
+  let umbral_alto = clamp(safeNumber(params.umbral_alto, DEFAULT_REGLA_PARAMS.umbral_alto), 0.1, 10);
+
+  if (umbral_alto <= umbral_medio) {
+    umbral_alto = Number(Math.min(10, umbral_medio + 0.1).toFixed(2));
+  }
+  if (umbral_alto <= umbral_medio) {
+    umbral_medio = Number(Math.max(0, umbral_alto - 0.1).toFixed(2));
+  }
+
+  return { profundidad_max, atenuacion, coef_proceso, umbral_medio, umbral_alto };
+}
 
 export default function CambioDetallePage() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const { usuario } = useAuth();
   const puedeAnalizar = usuario?.rol === "admin" || usuario?.rol === "analista";
+  const [reglaParams, setReglaParams] = useState<ParametrosRegla>(DEFAULT_REGLA_PARAMS);
 
   const { data: cambio, isLoading } = useQuery({
     queryKey: ["cambio", id],
@@ -55,7 +91,7 @@ export default function CambioDetallePage() {
   };
 
   const regla = useMutation({
-    mutationFn: () => analizarRegla(id!),
+    mutationFn: () => analizarRegla(id!, sanitizeReglaParams(reglaParams)),
     onSuccess: () => {
       invalida();
       toast.success("Analisis por reglas completado.");
@@ -126,6 +162,21 @@ export default function CambioDetallePage() {
         </CardContent>
       </Card>
 
+      {puedeAnalizar && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Parametros del motor de reglas</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-5">
+            <ParamField label="Profundidad" value={reglaParams.profundidad_max} min={1} max={3} step={1} onChange={(value) => setReglaParams((params) => sanitizeReglaParams({ ...params, profundidad_max: Math.round(value) }))} />
+            <ParamField label="Atenuacion" value={reglaParams.atenuacion} min={0} max={1} step={0.1} onChange={(value) => setReglaParams((params) => sanitizeReglaParams({ ...params, atenuacion: value }))} />
+            <ParamField label="Coef. proceso" value={reglaParams.coef_proceso} min={0} max={2} step={0.1} onChange={(value) => setReglaParams((params) => sanitizeReglaParams({ ...params, coef_proceso: value }))} />
+            <ParamField label="Umbral medio" value={reglaParams.umbral_medio} min={0} max={10} step={0.1} onChange={(value) => setReglaParams((params) => sanitizeReglaParams({ ...params, umbral_medio: value }))} />
+            <ParamField label="Umbral alto" value={reglaParams.umbral_alto} min={0.1} max={10} step={0.1} onChange={(value) => setReglaParams((params) => sanitizeReglaParams({ ...params, umbral_alto: value }))} />
+          </CardContent>
+        </Card>
+      )}
+
       {puedeAnalizar ? (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-4">
@@ -172,6 +223,40 @@ export default function CambioDetallePage() {
           </CardContent>
         </Card>
       )}
+    </div>
+  );
+}
+
+function ParamField({
+  label,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <Input
+        type="number"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(event) => {
+          if (event.target.value === "") return;
+          const nextValue = Number(event.target.value);
+          if (Number.isFinite(nextValue)) onChange(nextValue);
+        }}
+      />
     </div>
   );
 }

@@ -8,6 +8,11 @@ export interface Activo {
   descripcion: string;
 }
 
+export interface ActivoDetalle extends Activo {
+  dependencias: { id: string; nombre: string; peso: number }[];
+  procesos_soportados: { id: string; nombre: string; criticidad_negocio: number }[];
+}
+
 export interface ProcesoNegocio {
   id: string;
   nombre: string;
@@ -19,7 +24,7 @@ export const getActivos = () =>
   client.get<Activo[]>("/activos").then((r) => r.data);
 
 export const getActivo = (id: string) =>
-  client.get(`/activos/${id}`).then((r) => r.data);
+  client.get<ActivoDetalle>(`/activos/${id}`).then((r) => r.data);
 
 export const createActivo = (data: Omit<Activo, "id">) =>
   client.post<Activo>("/activos", data).then((r) => r.data);
@@ -43,4 +48,4 @@ export const createProceso = (data: Omit<ProcesoNegocio, "id">) =>
   client.post<ProcesoNegocio>("/procesos", data).then((r) => r.data);
 
 export const asociarProceso = (activoId: string, procesoId: string) =>
-  client.post(`/activos/${activoId}/procesos`, { proceso_id: procesoId }).then((r) => r.data);
+  client.post(`/procesos/activos/${activoId}/procesos`, { proceso_id: procesoId }).then((r) => r.data);
