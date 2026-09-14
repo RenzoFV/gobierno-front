@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { Bot, Eraser, MessageCircle, Send } from "lucide-react";
 import { toast } from "sonner";
 import { consultarAsistente } from "../api/asistente";
-import { cn } from "../lib/utils";
+import { cn, userMessage } from "../lib/utils";
 import { Button } from "./ui/button";
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "./ui/drawer";
 import { Textarea } from "./ui/form";
@@ -55,10 +55,13 @@ export default function FloatingAssistant({
         : pregunta;
       const res = await consultarAsistente(preguntaConContexto, activoContextoId);
       setMensajes((current) => [...current, { rol: "assistant", texto: res.respuesta_texto }]);
-    } catch {
-      const mensaje = "Error al consultar el asistente. Verifica que la OPENAI_API_KEY este configurada.";
+    } catch (error) {
+      const mensaje = userMessage(
+        error,
+        "Error al consultar el asistente. Verifica que la API Key (GEMINI_API_KEY o OPENAI_API_KEY) esté configurada correctamente en el backend.",
+      );
       setMensajes((current) => [...current, { rol: "assistant", texto: mensaje }]);
-      toast.error("No se pudo consultar el asistente.");
+      toast.error(mensaje);
     } finally {
       setCargando(false);
     }

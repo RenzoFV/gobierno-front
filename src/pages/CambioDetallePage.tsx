@@ -109,7 +109,7 @@ export default function CambioDetallePage() {
       toast.success("Analisis con IA completado.", { id: "ia-analysis" });
     },
     onError: (error) => {
-      toast.error(userMessage(error, "Error al analizar con IA. Verifica que la OPENAI_API_KEY este configurada."), { id: "ia-analysis" });
+      toast.error(userMessage(error, "Error al analizar con IA. Verifica que la API Key (GEMINI_API_KEY o OPENAI_API_KEY) esté configurada."), { id: "ia-analysis" });
     },
   });
 
