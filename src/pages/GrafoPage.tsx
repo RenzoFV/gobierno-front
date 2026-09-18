@@ -33,7 +33,7 @@ export default function GrafoPage() {
               </div>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground">El tamano del nodo representa criticidad. Las lineas punteadas conectan activos con procesos.</p>
+          <p className="text-xs text-muted-foreground">El tamano del nodo representa criticidad. Las lineas punteadas conectan componentes TI con procesos.</p>
         </CardContent>
       </Card>
 
@@ -50,7 +50,7 @@ export default function GrafoPage() {
       )}
       {empty && (
         <Card>
-          <CardContent className="py-12 text-center text-sm text-muted-foreground">Aun no hay activos o procesos para visualizar.</CardContent>
+          <CardContent className="py-12 text-center text-sm text-muted-foreground">Aun no hay componentes TI o procesos para visualizar.</CardContent>
         </Card>
       )}
       {data && !empty && (

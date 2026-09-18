@@ -115,7 +115,7 @@ export default function FloatingAssistant({
         <div className="flex-1 space-y-3 overflow-y-auto bg-muted/50 p-4">
           {mensajes.length === 0 && (
             <div className="rounded-lg border border-dashed bg-white p-4 text-center text-sm text-muted-foreground">
-              Pregunta por impactos, activos afectados o recomendaciones para un cambio.
+              Pregunta por impactos, componentes TI afectados o recomendaciones para un cambio.
             </div>
           )}
           {mensajes.map((mensaje, index) => (

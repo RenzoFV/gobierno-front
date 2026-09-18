@@ -53,15 +53,15 @@ const navigation: {
 const titles: Record<string, { title: string; description: string }> = {
   "/dashboard": {
     title: "Dashboard",
-    description: "Resumen ejecutivo de cambios, riesgos y activos impactados.",
+    description: "Resumen ejecutivo de cambios, riesgos y componentes TI impactados.",
   },
   "/inventario": {
     title: "Inventario",
-    description: "Activos TI, procesos de negocio y criticidad operativa.",
+    description: "Componentes TI, procesos de negocio y criticidad operativa.",
   },
   "/grafo": {
     title: "Grafo de dependencias",
-    description: "Mapa visual de relaciones entre activos y procesos.",
+    description: "Mapa visual de relaciones entre componentes TI y procesos.",
   },
   "/cambios": {
     title: "Solicitudes de cambio",

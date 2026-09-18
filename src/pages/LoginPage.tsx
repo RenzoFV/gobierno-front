@@ -62,7 +62,7 @@ export default function LoginPage() {
 
           <div className="grid grid-cols-3 gap-3">
             {[
-              ["Activos", "Criticidad"],
+              ["Componentes TI", "Criticidad"],
               ["Cambios", "Riesgo"],
               ["IA", "Analisis"],
             ].map(([title, subtitle]) => (

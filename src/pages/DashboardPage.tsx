@@ -61,7 +61,7 @@ export default function DashboardPage() {
       hint: "por motor de reglas",
     },
     {
-      label: "Activos criticos",
+      label: "Componentes criticos",
       value: resumen?.activos_mas_criticos?.length ?? 0,
       icon: Layers,
       color: "bg-secondary/10 text-secondary",
@@ -112,7 +112,7 @@ export default function DashboardPage() {
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <Card>
           <CardHeader>
-            <CardTitle>Activos mas criticos</CardTitle>
+            <CardTitle>Componentes TI mas criticos</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {(resumen?.activos_mas_criticos ?? []).length > 0 ? (
@@ -126,7 +126,7 @@ export default function DashboardPage() {
                 </div>
               ))
             ) : (
-              <EmptyState title="Sin activos criticos" description="Aun no hay evaluaciones que acumulen impacto en activos." />
+              <EmptyState title="Sin componentes criticos" description="Aun no hay evaluaciones que acumulen impacto en componentes TI." />
             )}
           </CardContent>
         </Card>

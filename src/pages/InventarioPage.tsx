@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Boxes, BriefcaseBusiness, GitBranch, Plus, Save, Settings2, Trash2 } from "lucide-react";
+import { Boxes, BriefcaseBusiness, Calculator, GitBranch, Plus, Settings2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   addDependencia,
   asociarProceso,
+  calcularCriticidad,
   createActivo,
   createProceso,
   deleteActivo,
@@ -13,7 +14,6 @@ import {
   getActivos,
   getProcesos,
   removeDependencia,
-  updateActivo,
   type Activo,
 } from "../api/activos";
 import { useAuth } from "../context/AuthContext";
@@ -38,6 +38,13 @@ import { Skeleton } from "../components/ui/skeleton";
 
 const tipos = ["Servidor", "Aplicacion", "BaseDeDatos", "API", "Microservicio", "ServicioCloud"];
 const PAGE_SIZE = 8;
+const rtoOptions = [
+  { value: "<=1h", label: "<= 1 h", minimo: 4 },
+  { value: "<=4h", label: "<= 4 h", minimo: 3 },
+  { value: "<=24h", label: "<= 24 h", minimo: 2 },
+  { value: ">24h", label: "> 24 h", minimo: 1 },
+] as const;
+type RtoOption = (typeof rtoOptions)[number]["value"];
 
 export default function InventarioPage() {
   const { usuario } = useAuth();
@@ -58,7 +65,15 @@ export default function InventarioPage() {
   const [procForm, setProcForm] = useState({ nombre: "", area: "", criticidad_negocio: 3 });
   const [depForm, setDepForm] = useState({ depende_de_id: "", peso: 0.8 });
   const [procesoAsociarId, setProcesoAsociarId] = useState("");
-  const [criticidadEdit, setCriticidadEdit] = useState(3);
+  const [critForm, setCritForm] = useState({
+    impacto_financiero: 3,
+    impacto_operativo: 3,
+    impacto_cumplimiento: 3,
+    impacto_reputacion_clientes: 3,
+    rto_objetivo: "<=24h" as RtoOption,
+    ajuste_manual: "",
+    justificacion_ajuste: "",
+  });
 
   const { data: detalleActivo, isLoading: cargandoDetalle } = useQuery({
     queryKey: ["activo", activoSeleccionado?.id],
@@ -76,7 +91,15 @@ export default function InventarioPage() {
 
   useEffect(() => {
     if (detalleActivo) {
-      setCriticidadEdit(detalleActivo.criticidad_base);
+      setCritForm({
+        impacto_financiero: detalleActivo.criticidad_financiera ?? detalleActivo.criticidad_base,
+        impacto_operativo: detalleActivo.criticidad_operativa ?? detalleActivo.criticidad_base,
+        impacto_cumplimiento: detalleActivo.criticidad_cumplimiento ?? detalleActivo.criticidad_base,
+        impacto_reputacion_clientes: detalleActivo.criticidad_reputacion_clientes ?? detalleActivo.criticidad_base,
+        rto_objetivo: isRtoOption(detalleActivo.criticidad_rto) ? detalleActivo.criticidad_rto : "<=24h",
+        ajuste_manual: "",
+        justificacion_ajuste: detalleActivo.criticidad_justificacion ?? "",
+      });
     }
   }, [detalleActivo]);
 
@@ -89,7 +112,7 @@ export default function InventarioPage() {
 
   const metricas = useMemo(
     () => [
-      { label: "Activos", value: activos?.length ?? 0, icon: Boxes, color: "bg-accent text-accent-foreground" },
+      { label: "Componentes TI", value: activos?.length ?? 0, icon: Boxes, color: "bg-accent text-accent-foreground" },
       { label: "Procesos", value: procesos?.length ?? 0, icon: BriefcaseBusiness, color: "bg-secondary/10 text-secondary" },
       {
         label: "Criticidad promedio",
@@ -109,9 +132,9 @@ export default function InventarioPage() {
       setForm({ nombre: "", tipo: tipos[0], criticidad_base: 3, descripcion: "" });
       setActivoDialog(false);
       setActivoSeleccionado(activo);
-      toast.success("Activo creado correctamente.");
+      toast.success("Componente TI creado correctamente.");
     },
-    onError: (error) => toast.error(userMessage(error, "No se pudo crear el activo.")),
+    onError: (error) => toast.error(userMessage(error, "No se pudo crear el componente TI.")),
   });
 
   const borrarActivoMutation = useMutation({
@@ -120,9 +143,9 @@ export default function InventarioPage() {
       queryClient.invalidateQueries({ queryKey: ["activos"] });
       queryClient.invalidateQueries({ queryKey: ["grafo"] });
       setActivoAEliminar(null);
-      toast.success("Activo eliminado correctamente.");
+      toast.success("Componente TI eliminado correctamente.");
     },
-    onError: (error) => toast.error(userMessage(error, "No se pudo eliminar el activo.")),
+    onError: (error) => toast.error(userMessage(error, "No se pudo eliminar el componente TI.")),
   });
 
   const crearProcesoMutation = useMutation({
@@ -173,13 +196,21 @@ export default function InventarioPage() {
     onError: (error) => toast.error(userMessage(error, "No se pudo asociar el proceso.")),
   });
 
-  const actualizarCriticidadMutation = useMutation({
-    mutationFn: ({ id, criticidad_base }: { id: string; criticidad_base: number }) => updateActivo(id, { criticidad_base }),
+  const calcularCriticidadMutation = useMutation({
+    mutationFn: ({ id }: { id: string }) => calcularCriticidad(id, {
+      impacto_financiero: critForm.impacto_financiero,
+      impacto_operativo: critForm.impacto_operativo,
+      impacto_cumplimiento: critForm.impacto_cumplimiento,
+      impacto_reputacion_clientes: critForm.impacto_reputacion_clientes,
+      rto_objetivo: critForm.rto_objetivo,
+      ajuste_manual: critForm.ajuste_manual ? Number(critForm.ajuste_manual) : null,
+      justificacion_ajuste: critForm.justificacion_ajuste,
+    }),
     onSuccess: (_, vars) => {
       invalidaActivo(vars.id);
-      toast.success("Criticidad actualizada.");
+      toast.success("Criticidad calculada.");
     },
-    onError: (error) => toast.error(userMessage(error, "No se pudo actualizar la criticidad.")),
+    onError: (error) => toast.error(userMessage(error, "No se pudo calcular la criticidad.")),
   });
 
   return (
@@ -204,7 +235,7 @@ export default function InventarioPage() {
         <div className="flex flex-col gap-4 border-b p-4 lg:flex-row lg:items-center lg:justify-between">
           <Tabs value={tab} onValueChange={(value) => setTab(value as "activos" | "procesos")} className="w-auto">
             <TabsList>
-              <TabsTrigger value="activos">Activos</TabsTrigger>
+              <TabsTrigger value="activos">Componentes TI</TabsTrigger>
               <TabsTrigger value="procesos">Procesos</TabsTrigger>
             </TabsList>
           </Tabs>
@@ -215,12 +246,12 @@ export default function InventarioPage() {
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="h-4 w-4" />
-                    Nuevo activo
+                    Nuevo componente
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Nuevo activo</DialogTitle>
+                    <DialogTitle>Nuevo componente TI</DialogTitle>
                     <DialogDescription>Registra un componente tecnologico y su criticidad base.</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 p-5">
@@ -241,7 +272,7 @@ export default function InventarioPage() {
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setActivoDialog(false)}>Cancelar</Button>
-                    <Button disabled={!form.nombre} loading={crearActivoMutation.isPending} onClick={() => crearActivoMutation.mutate(form)}>Guardar activo</Button>
+                    <Button disabled={!form.nombre} loading={crearActivoMutation.isPending} onClick={() => crearActivoMutation.mutate(form)}>Guardar componente</Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
@@ -298,21 +329,26 @@ export default function InventarioPage() {
                   <TableRow key={activo.id} className="animate-fade">
                     <TableCell className="font-semibold text-foreground">{activo.nombre}</TableCell>
                     <TableCell><Badge variant="sky">{activo.tipo}</Badge></TableCell>
-                    <TableCell><Badge variant="amber">{activo.criticidad_base}/5</Badge></TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        <Badge variant="amber">base {activo.criticidad_base}/5</Badge>
+                        <Badge variant="slate">efec. {activo.criticidad_efectiva ?? activo.criticidad_base}/5</Badge>
+                      </div>
+                    </TableCell>
                     <TableCell className="max-w-md truncate text-muted-foreground">{activo.descripcion || "Sin descripcion"}</TableCell>
                     {esAdmin && (
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => setActivoSeleccionado(activo)} aria-label={`Gestionar ${activo.nombre}`}>
+                        <Button variant="ghost" size="icon" onClick={() => setActivoSeleccionado(activo)} aria-label={`Gestionar componente ${activo.nombre}`}>
                           <Settings2 className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setActivoAEliminar(activo)} aria-label={`Eliminar ${activo.nombre}`}>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setActivoAEliminar(activo)} aria-label={`Eliminar componente ${activo.nombre}`}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </TableCell>
                     )}
                   </TableRow>
                 ))}
-                {activos?.length === 0 && <EmptyRow colSpan={esAdmin ? 5 : 4} text="No hay activos registrados." />}
+                {activos?.length === 0 && <EmptyRow colSpan={esAdmin ? 5 : 4} text="No hay componentes TI registrados." />}
               </TableBody>
             </Table>
           </div>
@@ -321,7 +357,7 @@ export default function InventarioPage() {
               page={currentActivosPage}
               pageSize={PAGE_SIZE}
               totalItems={activos?.length ?? 0}
-              itemLabel="activos"
+              itemLabel="componentes TI"
               onPageChange={setActivosPage}
             />
           )}
@@ -366,7 +402,7 @@ export default function InventarioPage() {
       <Dialog open={!!activoAEliminar} onOpenChange={(open) => !open && setActivoAEliminar(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Eliminar activo</DialogTitle>
+            <DialogTitle>Eliminar componente TI</DialogTitle>
             <DialogDescription>
               Esta accion eliminara "{activoAEliminar?.nombre}" del inventario. Confirma solo si estas seguro.
             </DialogDescription>
@@ -384,7 +420,7 @@ export default function InventarioPage() {
       <Dialog open={!!activoSeleccionado} onOpenChange={(open) => !open && setActivoSeleccionado(null)}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Gestionar activo</DialogTitle>
+            <DialogTitle>Gestionar componente TI</DialogTitle>
             <DialogDescription>
               Configura criticidad, dependencias y procesos soportados para mantener el grafo trazable.
             </DialogDescription>
@@ -396,25 +432,76 @@ export default function InventarioPage() {
             </div>
           ) : (
             <div className="max-h-[70vh] space-y-5 overflow-y-auto p-5">
-              <div className="grid gap-3 rounded-lg border bg-muted/40 p-4 md:grid-cols-[1fr_auto] md:items-end">
+              <div className="grid gap-3 rounded-lg border bg-muted/40 p-4 md:grid-cols-[1fr_auto] md:items-start">
                 <div>
                   <p className="font-semibold text-foreground">{detalleActivo.nombre}</p>
                   <p className="mt-1 text-sm text-muted-foreground">{detalleActivo.tipo} - {detalleActivo.descripcion || "Sin descripcion"}</p>
                 </div>
-                <div className="flex items-end gap-2">
-                  <Field label="Criticidad">
-                    <Input type="number" min={1} max={5} value={criticidadEdit} onChange={(event) => setCriticidadEdit(Number(event.target.value))} />
-                  </Field>
-                  <Button
-                    size="icon"
-                    loading={actualizarCriticidadMutation.isPending}
-                    onClick={() => actualizarCriticidadMutation.mutate({ id: detalleActivo.id, criticidad_base: criticidadEdit })}
-                    aria-label="Guardar criticidad"
-                  >
-                    <Save className="h-4 w-4" />
-                  </Button>
+                <div className="flex flex-wrap justify-start gap-2 md:justify-end">
+                  <Badge variant="amber">base {detalleActivo.criticidad_base}/5</Badge>
+                  <Badge variant="slate">efectiva {detalleActivo.criticidad_efectiva ?? detalleActivo.criticidad_base}/5</Badge>
+                  <Badge variant="sky">{detalleActivo.criticidad_origen ?? "manual"}</Badge>
                 </div>
               </div>
+
+              <section className="space-y-3 rounded-lg border p-4">
+                <div className="flex items-center gap-2">
+                  <Calculator className="h-4 w-4 text-secondary" />
+                  <h3 className="font-semibold text-foreground">Calculo de criticidad</h3>
+                </div>
+                <div className="grid gap-3 md:grid-cols-5">
+                  <CritField label="Financiera" value={critForm.impacto_financiero} onChange={(value) => setCritForm({ ...critForm, impacto_financiero: value })} />
+                  <CritField label="Operativa" value={critForm.impacto_operativo} onChange={(value) => setCritForm({ ...critForm, impacto_operativo: value })} />
+                  <CritField label="Cumplimiento" value={critForm.impacto_cumplimiento} onChange={(value) => setCritForm({ ...critForm, impacto_cumplimiento: value })} />
+                  <CritField label="Clientes/reputacion" value={critForm.impacto_reputacion_clientes} onChange={(value) => setCritForm({ ...critForm, impacto_reputacion_clientes: value })} />
+                  <Field label="RTO objetivo">
+                    <Select value={critForm.rto_objetivo} onChange={(event) => setCritForm({ ...critForm, rto_objetivo: event.target.value as RtoOption })}>
+                      {rtoOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    </Select>
+                  </Field>
+                </div>
+                <div className="grid gap-3 md:grid-cols-[160px_1fr_auto] md:items-end">
+                  <Field label="Ajuste manual">
+                    <Select value={critForm.ajuste_manual} onChange={(event) => setCritForm({ ...critForm, ajuste_manual: event.target.value })}>
+                      <option value="">Sin ajuste</option>
+                      {[1, 2, 3, 4, 5].map((valor) => <option key={valor} value={valor}>{valor}</option>)}
+                    </Select>
+                  </Field>
+                  <Field label="Justificacion del ajuste">
+                    <Input
+                      value={critForm.justificacion_ajuste}
+                      onChange={(event) => setCritForm({ ...critForm, justificacion_ajuste: event.target.value })}
+                      placeholder="Obligatoria si hay ajuste manual"
+                    />
+                  </Field>
+                  <Button
+                    loading={calcularCriticidadMutation.isPending}
+                    onClick={() => calcularCriticidadMutation.mutate({ id: detalleActivo.id })}
+                  >
+                    <Calculator className="h-4 w-4" />
+                    Calcular
+                  </Button>
+                </div>
+                <div className="grid gap-2 text-sm md:grid-cols-3">
+                  <InfoPill label="Impacto base" value={`${impactoBase(critForm)}/5`} />
+                  <InfoPill label="Minimo por RTO" value={`${minimoPorRto(critForm.rto_objetivo)}/5`} />
+                  <InfoPill label="Base calculada" value={`${Math.max(impactoBase(critForm), minimoPorRto(critForm.rto_objetivo))}/5`} />
+                  <InfoPill label="Heredada del grafo" value={`${detalleActivo.criticidad_heredada ?? 0}/5`} />
+                  <InfoPill label="Efectiva actual" value={`${detalleActivo.criticidad_efectiva ?? detalleActivo.criticidad_base}/5`} />
+                </div>
+                {detalleActivo.criticidad_contribuciones?.length ? (
+                  <details className="rounded-md bg-muted/60 px-3 py-2 text-sm">
+                    <summary className="cursor-pointer font-medium text-foreground">Ver aportes del grafo</summary>
+                    <ul className="mt-2 space-y-1 text-muted-foreground">
+                      {detalleActivo.criticidad_contribuciones.slice(0, 6).map((item) => (
+                        <li key={`${item.tipo}-${item.id}`}>
+                          {item.tipo === "proceso" ? "Proceso" : "Dependiente"}: {item.nombre} aporta {item.aporte}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                ) : null}
+              </section>
 
               <section className="space-y-3">
                 <div className="flex items-center gap-2">
@@ -424,7 +511,7 @@ export default function InventarioPage() {
                 <div className="grid gap-3 md:grid-cols-[1fr_120px_auto] md:items-end">
                   <Field label="Depende de">
                     <Select value={depForm.depende_de_id} onChange={(event) => setDepForm({ ...depForm, depende_de_id: event.target.value })}>
-                      <option value="">Seleccionar activo</option>
+                      <option value="">Seleccionar componente TI</option>
                       {(activos ?? []).filter((activo) => activo.id !== detalleActivo.id).map((activo) => (
                         <option key={activo.id} value={activo.id}>{activo.nombre}</option>
                       ))}
@@ -517,6 +604,54 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
     <div className="space-y-2">
       <Label>{label}</Label>
       {children}
+    </div>
+  );
+}
+
+function isRtoOption(value: unknown): value is RtoOption {
+  return rtoOptions.some((option) => option.value === value);
+}
+
+function minimoPorRto(value: RtoOption) {
+  return rtoOptions.find((option) => option.value === value)?.minimo ?? 1;
+}
+
+function impactoBase(params: {
+  impacto_financiero: number;
+  impacto_operativo: number;
+  impacto_cumplimiento: number;
+  impacto_reputacion_clientes: number;
+}) {
+  return Math.max(
+    params.impacto_financiero,
+    params.impacto_operativo,
+    params.impacto_cumplimiento,
+    params.impacto_reputacion_clientes,
+  );
+}
+
+function CritField({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
+  return (
+    <Field label={label}>
+      <Input
+        type="number"
+        min={1}
+        max={5}
+        value={value}
+        onChange={(event) => {
+          const nextValue = Number(event.target.value);
+          if (Number.isFinite(nextValue)) onChange(Math.min(5, Math.max(1, Math.round(nextValue))));
+        }}
+      />
+    </Field>
+  );
+}
+
+function InfoPill({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border bg-white px-3 py-2">
+      <p className="text-xs font-semibold text-secondary">{label}</p>
+      <p className="mt-1 font-bold text-foreground">{value}</p>
     </div>
   );
 }

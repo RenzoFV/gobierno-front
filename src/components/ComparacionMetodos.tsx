@@ -24,7 +24,7 @@ export default function ComparacionMetodos({ regla, ia, coincidencia, activos = 
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid items-start gap-4 lg:grid-cols-2">
         <AnalysisCard
           title="Motor de reglas"
           icon={<Cpu className="h-5 w-5" />}
@@ -49,9 +49,9 @@ export default function ComparacionMetodos({ regla, ia, coincidencia, activos = 
             <div>
               <div className="mb-2 flex items-center gap-2 text-foreground">
                 <CheckCircle2 className="h-5 w-5 text-primary" />
-                <h3 className="font-semibold">Coincidencia de activos recuperados</h3>
+                <h3 className="font-semibold">Coincidencia de componentes TI recuperados</h3>
               </div>
-              <p className="text-sm text-muted-foreground">Comparacion entre los activos afectados por reglas y los activos recuperados por IA mediante herramientas del grafo.</p>
+              <p className="text-sm text-muted-foreground">Comparacion entre los componentes TI afectados por reglas y los componentes TI recuperados por IA mediante herramientas del grafo.</p>
             </div>
             <p className="text-3xl font-bold text-primary">{((coincidencia ?? 0) * 100).toFixed(1)}%</p>
           </div>
@@ -63,7 +63,7 @@ export default function ComparacionMetodos({ regla, ia, coincidencia, activos = 
         </Card>
       ) : (
         <div className="rounded-lg border border-dashed bg-muted/60 px-4 py-8 text-center text-sm text-muted-foreground">
-          Genera ambos analisis para ver la coincidencia de activos.
+          Genera ambos analisis para ver la coincidencia de componentes TI.
         </div>
       )}
     </div>
@@ -89,7 +89,7 @@ function AnalysisCard({
   const calculaRiesgo = !esIa;
 
   return (
-    <Card className="animate-pop p-5">
+    <Card className="animate-pop self-start p-5">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-accent-foreground">{icon}</div>
@@ -102,7 +102,7 @@ function AnalysisCard({
         <div className="space-y-4 text-sm">
           <div className="grid grid-cols-3 gap-3">
             <Metric label="Score" value={calculaRiesgo ? String(data.score_riesgo ?? "N/A") : "No calculado por IA"} />
-            <Metric label="Activos" value={String(data.activos_afectados?.length ?? 0)} />
+            <Metric label="Componentes" value={String(data.activos_afectados?.length ?? 0)} />
             <Metric label="Procesos" value={String(data.procesos_afectados?.length ?? 0)} />
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
@@ -119,7 +119,7 @@ function AnalysisCard({
           )}
           <div className="space-y-2">
             <DisclosureList
-              title={calculaRiesgo ? "Activos afectados" : "Activos recuperados"}
+              title={calculaRiesgo ? "Componentes TI afectados" : "Componentes TI recuperados"}
               values={data.activos_afectados ?? []}
               labelFor={(id) => activosById.get(id)?.nombre ?? id}
               detailFor={(id) => {
@@ -205,12 +205,12 @@ function TraceabilityTable({ detalles, mejorActivo }: { detalles: DetalleActivoE
 
   return (
     <div>
-      <p className="mb-2 font-semibold text-foreground">Trazabilidad por activo</p>
+      <p className="mb-2 font-semibold text-foreground">Trazabilidad por componente TI</p>
       <div className="max-h-80 overflow-auto rounded-lg border bg-white">
         <table className="w-full min-w-[720px] text-left text-xs">
           <thead className="sticky top-0 bg-muted text-secondary">
             <tr>
-              <th className="px-3 py-2 font-semibold">Activo</th>
+              <th className="px-3 py-2 font-semibold">Componente TI</th>
               <th className="px-3 py-2 font-semibold">Dist.</th>
               <th className="px-3 py-2 font-semibold">Peso</th>
               <th className="px-3 py-2 font-semibold">Factor</th>

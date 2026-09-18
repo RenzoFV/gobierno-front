@@ -95,7 +95,7 @@ export default function CambiosPage() {
         <div className="grid flex-1 gap-3 md:grid-cols-[minmax(220px,1fr)_220px] lg:grid-cols-[minmax(260px,1fr)_220px_240px]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input className="pl-9" placeholder="Buscar por titulo, descripcion o activo..." value={search} onChange={(event) => setSearch(event.target.value)} />
+            <Input className="pl-9" placeholder="Buscar por titulo, descripcion o componente..." value={search} onChange={(event) => setSearch(event.target.value)} />
           </div>
           <Select value={estado} onChange={(event) => setEstado(event.target.value)}>
             {estados.map((item) => <option key={item} value={item}>{item === "todos" ? "Todos los estados" : item}</option>)}
@@ -123,7 +123,7 @@ export default function CambiosPage() {
                 <DialogDescription>
                   {esSolicitante
                     ? "Registra el cambio para que un analista evalue su impacto."
-                    : "Registra el cambio y selecciona el activo objetivo para iniciar el analisis."}
+                    : "Registra el cambio y selecciona el componente TI objetivo para iniciar el analisis."}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 p-5">
@@ -133,9 +133,9 @@ export default function CambiosPage() {
                 <Field label="Descripcion">
                   <Textarea value={form.descripcion} onChange={(event) => setForm({ ...form, descripcion: event.target.value })} />
                 </Field>
-                <Field label="Activo objetivo">
+                <Field label="Componente TI objetivo">
                   <Select value={form.activo_objetivo_id} onChange={(event) => setForm({ ...form, activo_objetivo_id: event.target.value })}>
-                    <option value="">Selecciona un activo...</option>
+                    <option value="">Selecciona un componente TI...</option>
                     {activos?.map((activo) => (
                       <option key={activo.id} value={activo.id}>{activo.nombre} ({activo.id})</option>
                     ))}
@@ -159,7 +159,7 @@ export default function CambiosPage() {
             <TableHeader className="bg-muted">
               <TableRow>
                 <TableHead>Titulo</TableHead>
-                <TableHead>Activo objetivo</TableHead>
+                <TableHead>Componente TI objetivo</TableHead>
                 {!esSolicitante && <TableHead>Solicitante</TableHead>}
                 <TableHead>Fecha</TableHead>
                 <TableHead>Estado</TableHead>

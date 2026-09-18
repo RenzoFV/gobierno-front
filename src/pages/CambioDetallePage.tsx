@@ -74,10 +74,10 @@ export default function CambioDetallePage() {
         "Contexto de una solicitud de cambio TI ya analizada. Responde las preguntas usando este contexto y, si necesitas datos adicionales, consulta las herramientas del grafo.",
         `Solicitud: ${cambio?.titulo ?? "Sin titulo"}`,
         `Descripcion: ${cambio?.descripcion || "Sin descripcion"}`,
-        `Activo objetivo: ${cambio?.activo_nombre || cambio?.activo_objetivo_id}`,
-        `ID activo objetivo: ${cambio?.activo_objetivo_id}`,
+        `Componente TI objetivo: ${cambio?.activo_nombre || cambio?.activo_objetivo_id}`,
+        `ID componente TI objetivo: ${cambio?.activo_objetivo_id}`,
         comparacion.regla
-          ? `Resultado motor de reglas: riesgo ${comparacion.regla.nivel_riesgo}, score ${comparacion.regla.score_riesgo}, activos afectados ${comparacion.regla.activos_afectados?.join(", ") || "ninguno"}, procesos afectados ${comparacion.regla.procesos_afectados?.join(", ") || "ninguno"}, recomendaciones ${comparacion.regla.recomendaciones?.join("; ") || "ninguna"}.`
+          ? `Resultado motor de reglas: riesgo ${comparacion.regla.nivel_riesgo}, score ${comparacion.regla.score_riesgo}, componentes TI afectados ${comparacion.regla.activos_afectados?.join(", ") || "ninguno"}, procesos afectados ${comparacion.regla.procesos_afectados?.join(", ") || "ninguno"}, recomendaciones ${comparacion.regla.recomendaciones?.join("; ") || "ninguna"}.`
           : "Resultado motor de reglas: no disponible.",
         `Respuesta IA ya generada: ${comparacion.ia.respuesta_texto || "Sin respuesta textual."}`,
       ].join("\n")
