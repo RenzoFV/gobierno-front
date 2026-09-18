@@ -137,7 +137,7 @@ export default function CambiosPage() {
                   <Select value={form.activo_objetivo_id} onChange={(event) => setForm({ ...form, activo_objetivo_id: event.target.value })}>
                     <option value="">Selecciona un componente TI...</option>
                     {activos?.map((activo) => (
-                      <option key={activo.id} value={activo.id}>{activo.nombre} ({activo.id})</option>
+                      <option key={activo.id} value={activo.id}>{activo.nombre}</option>
                     ))}
                   </Select>
                 </Field>
